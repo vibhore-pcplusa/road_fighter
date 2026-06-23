@@ -10,14 +10,21 @@
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const levelEl = document.getElementById('level');
+//const scoreEl = document.getElementById('score');
+//const levelEl = document.getElementById('level');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const saveBtn = document.getElementById('saveBtn');
 const playerNameInput = document.getElementById('playerName');
 const leaderList = document.getElementById('leaderList');
 const touchControls = document.getElementById('touchControls');
+// ---load trees---
+const trees = {};
+
+for (let i = 1; i <= 6; i++) {
+    trees[`t${i}`] = new Image();
+    trees[`t${i}`].src = `assets/trees/t${i}.png`;
+}
 
 // --- Sprites ---
 const images = {};
@@ -65,7 +72,9 @@ function stopBgMusic() {
 let roadOffset = 0;
 
 const W = canvas.width, H = canvas.height;
-
+console.log(W);
+console.log("vj");
+console.log(H);
 const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
 
 let state = {
@@ -77,6 +86,7 @@ let state = {
   spawnTimer: 0,
   spawnInterval: 90, // frames
   obstacles: [],
+  trees:[],
   /*player: null,*/
   player: createPlayer(), 
   frames: 0,
@@ -91,9 +101,9 @@ function createPlayer(){
   return {
     lane:1, // 0..2
     x: lanes[1],
-    y: H - 140,
-    width: 48,
-    height: 90,
+    y: H - 180,
+    width: 88,
+    height: 120,
     targetX: lanes[1],
     speedX: 8,
     color: "#00cc66",
@@ -105,11 +115,11 @@ function createPlayer(){
 function spawnObstacle(){
   const lane = Math.floor(Math.random()*3);
   const type = Math.random() < 0.12 ? 'oil' : 'car'; // small variety
-  const w = type==='car' ? 48 : 60;
-  const h = type==='car' ? 90 : 24;
+  const w = type==='car' ? 88 : 120;
+  const h = type==='car' ? 120 : 60;
 
 // Base gap
-  let baseGap = 250;
+  let baseGap = 280;
   // Increase base gap at low speeds
   if (state.speed < 40) baseGap = 400; // more breathing space
 
@@ -133,6 +143,19 @@ function spawnObstacle(){
   state.obstacles.push(obj);
 }
 
+function spawnTree() {
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+
+    state.trees.push({
+        x: side === 'left'
+    ? -15 + Math.random() * 10
+    : canvas.width - 115 + Math.random() * 10,
+        y: -80,
+        width: 50,
+        height: 70,
+        sprite: `t${Math.floor(Math.random() * 6) + 1}`
+    });
+}
 // AABB collision
 function collides(a,b){
   return Math.abs(a.x - b.x) * 2 < (a.width + b.width) &&
@@ -142,12 +165,14 @@ function collides(a,b){
 // draw road and lane markings
 function drawRoad(){
   // sides
-  ctx.fillStyle = "#1a1a1a";
+  //ctx.fillStyle = "#1a1a1a";
+  ctx.fillStyle = "brown";
   ctx.fillRect(0,0,W,H);
   // road center area
-  const roadW = W*0.9;
-  const roadX = (W-roadW)/2;
-  ctx.fillStyle = "#2b2b2b";
+  const roadW = W*0.8;
+  const roadX = W*0.05; //(W-roadW)/2;
+  //ctx.fillStyle = "#2b2b2b";
+  ctx.fillStyle = "grey";
   ctx.fillRect(roadX,0,roadW,H);
   // lane lines
   ctx.strokeStyle = "#bfbfbf";
@@ -165,22 +190,34 @@ function drawRoad(){
 function render(){
   ctx.clearRect(0,0,W,H);
   drawRoad();
+  for(const tree of state.trees) {
+    const img = trees[tree.sprite];
 
+    if(img && img.complete) {
+        ctx.drawImage(
+            img,
+            tree.x,
+            tree.y,
+            tree.width,
+            tree.height
+        );
+    }
+}
     // HUD Header Dashboard Starts
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(0, 0, W, 36); // semi-transparent bar at top
+    ctx.fillRect(0, 0, W, 38); // semi-transparent bar at top
 
     ctx.fillStyle = "#fff";
-    ctx.font = "16px Arial";
+    ctx.font = "26px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Level: " + state.level, 10, 22);
+    ctx.fillText("Level: " + state.level, 100, 22);
 
     ctx.textAlign = "center";
     ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 22);
 
     ctx.textAlign = "right";
-    ctx.fillText("Score: " + state.score, W - 10, 22);
+    ctx.fillText("Score: " + state.score, W - 130, 22);
     ctx.restore();
     // HUD Header Dashboard Ends
 
@@ -238,6 +275,9 @@ function update(){
   if(state.spawnTimer >= state.spawnInterval){
     state.spawnTimer = 0;
     spawnObstacle();
+     if (Math.random() < 0.5) {
+        spawnTree();
+    }
     // slowly decrease interval as game progresses
     if(state.spawnInterval > 36 && state.frames % 600 === 0) state.spawnInterval -= 6;
   }
@@ -256,6 +296,14 @@ function update(){
     // remove off-screen
     if(o.y > H + 200) state.obstacles.splice(i,1);
   }
+
+  for(let i = state.trees.length - 1; i >= 0; i--) {
+    state.trees[i].y += state.speed;
+
+    if(state.trees[i].y > H + 100) {
+        state.trees.splice(i, 1);
+    }
+}
 
   // collision check: use approximated bbox with lane centers
   for(const o of state.obstacles){
@@ -287,7 +335,7 @@ function update(){
   if(state.frames % 6 === 0) {
     // scoring: add points over time
     state.score += Math.floor(1 + state.level*0.3); //time based.
-    scoreEl.textContent = state.score;
+    //scoreEl.textContent = state.score;
   }
   
   // scoring: add points based on distance traveled
@@ -304,7 +352,7 @@ function update(){
     state.minSpeed = 2 + (state.level - 1) * 2;
     state.maxSpeed = 12 + (state.level - 1) * 2;
     
-    levelEl.textContent = state.level;
+    //levelEl.textContent = state.level;
   }
 
     // scroll lane dashes
@@ -383,9 +431,9 @@ function loop(){
     ctx.fillRect(0,0,W,H);
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
-    ctx.font = "28px sans-serif";
+    ctx.font = "38px sans-serif";
     ctx.fillText("GAME OVER", W/2, H/2 - 10);
-    ctx.font = "18px sans-serif";
+    ctx.font = "38px sans-serif";
     ctx.fillText("Score: " + state.score, W/2, H/2 + 22);
     ctx.restore();
     // 👇 change Start button text
@@ -407,6 +455,7 @@ function setupTouch(){
 
 // start / restart
 function startGame(){
+  state.trees.length = 0;
   state.running = true;
   state.paused = false;
   state.score = 0;
@@ -415,13 +464,14 @@ function startGame(){
   state.spawnInterval = 90;
   //state.obstacles = [];
   state.obstacles.length = 0;   // ✅ clear array fully
+  state.trees.length = 0;
   roadOffset = 0;               // ✅ reset lane animation
   state.frames = 0;
   state.spawnTimer = 0;
   state.player = createPlayer();
   state.player.alive = true;
-  scoreEl.textContent = state.score;
-  levelEl.textContent = state.level;
+  //scoreEl.textContent = state.score;
+  //levelEl.textContent = state.level;
   saveBtn.disabled = false;
 
   // reset button text while running
@@ -811,9 +861,76 @@ if (document.readyState === 'loading') {
   sendScaleHint();
 }
 
+// Responsive canvas sizing: ensure internal scripts relying on canvas size can read attributes
+//var canvas = document.getElementById('game');
+
+function getCssScale(el) {
+  try {
+    var s = window.getComputedStyle(el).transform;
+    if (!s || s === 'none') return 1;
+    // matrix(a, b, c, d, e, f) => scaleX = a
+    var m = s.match(/matrix\(([^)]+)\)/);
+    if (!m) return 1;
+    var parts = m[1].split(',').map(function(p){ return parseFloat(p.trim()); });
+    if (parts.length >= 1) return parts[0] || 1;
+  } catch (e) {}
+  return 1;
+}
+/*
+function syncCanvasSize(){
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var scale = window.devicePixelRatio || 1;
+  // account for any CSS transform scale so drawing resolution matches visual size
+  var cssScale = getCssScale(canvas) || 1;
+  var w = Math.max(480, Math.floor(rect.width * scale / cssScale));
+  var h = Math.max(640, Math.floor(rect.height * scale / cssScale));
+  canvas.width = w;
+  canvas.height = h;
+  // keep CSS sizing controlled by stylesheet
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+}
+
+window.addEventListener('resize', syncCanvasSize);
+window.addEventListener('orientationchange', syncCanvasSize);
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(syncCanvasSize,50); });
+*/
+// Touch controls visibility: toggle class instead of inline styles
+function updateTouchVisibility() {
+  var tc = document.getElementById('touchControls');
+  if (!tc) return;
+  var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  var smallScreen = window.innerWidth <= 700;
+  if (isTouch || smallScreen) tc.classList.add('visible'); else tc.classList.remove('visible');
+}
+window.addEventListener('resize', updateTouchVisibility);
+window.addEventListener('orientationchange', updateTouchVisibility);
+updateTouchVisibility();
+
+// ensure canvas sync runs after possible CSS transform changes
+//setTimeout(syncCanvasSize, 300);
+
 // Initialize on DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupUI);
 } else {
   setupUI();
 }
+
+
+function resizeCanvas() {
+
+    const gameWidth = 720;
+    const gameHeight = 1200;
+
+    const scale = Math.min(
+        window.innerWidth / gameWidth,
+        window.innerHeight / gameHeight
+    );
+
+    canvas.style.width = `${gameWidth * scale}px`;
+    canvas.style.height = `${gameHeight * scale}px`;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
