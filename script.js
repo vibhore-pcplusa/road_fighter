@@ -487,40 +487,41 @@ function drawLeadersPanel(){
   ctx.fillText('Top Scores (IST Time)', x + 26, y + 48);
 
   const list = state.leaders && state.leaders.length ? state.leaders : [];
-  ctx.font = '22px sans-serif';
+  ctx.font = '27px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   if (!list.length) {
     ctx.fillText('No scores yet. Play to save your best run!', x + 26, y + 100);
   } else {
-    const rowY = y + 112;
+    const rowY = y + 122;
     const rowHeight = 42;
     const maxRows = Math.min(10, list.length);
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = '22px sans-serif';
+    ctx.font = '26px sans-serif';
     ctx.fillText('Rank', x + 30, rowY - 14);
     ctx.fillText('Player', x + 110, rowY - 14);
-    ctx.fillText('Score', x + w - 210, rowY - 14);
-    ctx.fillText('Time', x + w - 90, rowY - 14);
+    ctx.fillText('Score', x + 260, rowY - 14);
+    ctx.fillText('Date', x + 390, rowY - 14);
 
     for (let i = 0; i < maxRows; i++) {
       const it = list[i];
       const rowTop = rowY + i * rowHeight;
       if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.08)';
-        ctx.fillRect(x + 18, rowTop - 24, w - 36, rowHeight);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(x + 18, rowTop - 11, w - 36, rowHeight);
       }
       ctx.fillStyle = '#fff';
-      ctx.font = '20px sans-serif';
+      ctx.font = '24px sans-serif';
       const date = new Date(it.created_at);
       const options = {
-        timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+        timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric'
+        /*,
+        hour: '2-digit', minute: '2-digit', second: '2-digit'*/
       };
       const istTime = new Intl.DateTimeFormat('en-IN', options).format(date);
-      ctx.fillText((i + 1) + '.', x + 30, rowTop + 8);
-      ctx.fillText(it.name, x + 110, rowTop + 8);
-      ctx.fillText(it.score.toString(), x + w - 210, rowTop + 8);
-      ctx.fillText(istTime, x + w - 90, rowTop + 8);
+      ctx.fillText((i + 1) + '.', x + 30, rowTop + 18);
+      ctx.fillText(it.name, x + 110, rowTop + 18);
+      ctx.fillText(it.score.toString(), x + 260, rowTop + 18);
+      ctx.fillText(istTime, x + 390, rowTop + 18);
     }
   }
   ctx.restore();
@@ -551,14 +552,16 @@ function drawControlsPanel(){
   ctx.fillText('Controls & Rules', x + 26, y + 48);
 
   const lines = [
-    'Arrow keys / A D to move left/right',
+    ' ',
+    'Arrow keys to move left/right',
     'Up to speed up, Down to slow',
-    'Touch controls appear on small screens',
-    'Speed increases with levels; level-up every 400 points',
-    'Developed by Vibhore Jain'
+    'Speed increases with levels;',
+    'It level-up every 400 points',
+    'Developed by Vibhore Jain',
+    'Email Id - vibhore.mit@gmail.com'
   ];
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.font = '22px sans-serif';
+  ctx.font = '26px sans-serif';
   for (let i=0;i<lines.length;i++) ctx.fillText(lines[i], x + 26, y + 90 + i*40);
   ctx.restore();
 }
