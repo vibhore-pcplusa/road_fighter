@@ -1,4 +1,8 @@
 /* Base layout */
+html, body {
+  height: 100%;
+  overflow: hidden; /* disable horizontal and vertical scroll */
+}
 body {
   font-family: Arial, sans-serif;
   background: #222;
@@ -6,8 +10,9 @@ body {
   margin: 0;
   display: flex;
   gap: 20px;
-  padding: 12px;
-  align-items: flex-start;
+  padding: 0; /* remove extra padding to avoid scrollbars */
+  align-items: center;
+  justify-content: center;
   height: 100vh;
   box-sizing: border-box;
 }
@@ -30,9 +35,9 @@ canvas {
   display: block;
   background: #333;
   border-radius: 4px;
-  /*width: 100%;*/
-  height: calc(100vh - 100px);
-  max-height: 880px;
+  width: 100vw; /* fill viewport width */
+  height: 100vh; /* fill viewport height */
+  max-height: none;
   object-fit: cover;
   transform-origin: top left;
 }
@@ -100,7 +105,7 @@ button { padding:8px; cursor:pointer; }
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
-  body { flex-direction: column; align-items: stretch; height: auto; }
+  body { flex-direction: column; align-items: stretch; height: 100vh; }
   #ui { width: 100%; order: 2; display:flex; flex-direction:column; gap:12px; padding:8px 0; }
   #game-wrap { order: 1; }
   .panel { left:10px; right:10px; top:auto; bottom:10px; width:auto; }

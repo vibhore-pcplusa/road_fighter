@@ -6,6 +6,7 @@
   - collision detection (AABB)
   - mobile touch support
   - optional sprite loading (commented)
+  - randomly trees added on footpath and moving down
 */
 
 const canvas = document.getElementById('game');
@@ -44,6 +45,18 @@ for (const key in spriteFiles) {
   images[key].src = "assets/" + spriteFiles[key]; // adjust path if needed
 }
 
+// control button images (up/down/left/right)
+const controlImgs = {};
+['up','down','left','right'].forEach(k => {
+  controlImgs[k] = new Image();
+  controlImgs[k].src = `assets/${k}.jpg`;
+});
+
+// explosion gif
+const explosionImg = new Image();
+explosionImg.src = 'assets/explosion.gif';
+
+
 // --- SOUND ADDITION ---
 const sounds = {
   accelerate: new Audio("assets/sounds/accelerate.mp3"),
@@ -57,20 +70,60 @@ const sounds = {
 };
 sounds.bg.loop = true;
 sounds.bg.volume = 0.8;
+// Audio unlock handling: browsers block play() until a user gesture. We'll queue plays
+let audioUnlocked = false;
+const _audioQueue = [];
+
+function _playSoundNow(sound) {
+  if (!sounds[sound]) return;
+  try {
+    const s = sounds[sound].cloneNode();
+    s.play().catch(()=>{});
+  } catch (e) {}
+}
 
 function playSound(sound) {
-  if (sounds[sound]) {
-    const s = sounds[sound].cloneNode();
-    s.play().catch(err => console.log("Sound blocked:", err));
+  if (!audioUnlocked) {
+    _audioQueue.push(() => _playSoundNow(sound));
+    return;
   }
+  _playSoundNow(sound);
 }
+
+let _bgPending = false;
 function playBgMusic() {
-  sounds.bg.currentTime = 0;
-  sounds.bg.play().catch(err => console.log("BG music blocked:", err));
+  if (!audioUnlocked) { _bgPending = true; return; }
+  try { sounds.bg.currentTime = 0; sounds.bg.play().catch(()=>{}); } catch(e) {}
 }
-function stopBgMusic() {
-  sounds.bg.pause();
+function stopBgMusic() { try { sounds.bg.pause(); } catch(e) {} }
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  // attempt to prime audio by playing+pausing a muted clone of each sound
+  try {
+    for (const k in sounds) {
+      try {
+        const n = sounds[k].cloneNode(); n.muted = true; n.volume = 0; n.play().then(()=>{ try{ n.pause(); n.currentTime = 0; }catch(e){} }).catch(()=>{});
+      } catch(e) {}
+    }
+  } catch (e) {}
+  audioUnlocked = true;
+  // drain queue
+  while(_audioQueue.length) {
+    try { _audioQueue.shift()(); } catch(e) {}
+  }
+  ui.toast = 'Audio enabled'; setTimeout(()=>{ ui.toast = null; }, 900);
+  if (_bgPending && state.running && !state.paused) { _bgPending = false; playBgMusic(); }
 }
+
+// listen for first user gesture to unlock audio
+function _attachAudioUnlock() {
+  const once = (e) => { unlockAudio(); window.removeEventListener('pointerdown', once); window.removeEventListener('keydown', once); window.removeEventListener('touchstart', once); };
+  window.addEventListener('pointerdown', once);
+  window.addEventListener('keydown', once);
+  window.addEventListener('touchstart', once);
+}
+_attachAudioUnlock();
 
 // Canvas UI helpers
 function rectContains(rx, ry, rw, rh, x, y) {
@@ -80,9 +133,9 @@ function rectContains(rx, ry, rw, rh, x, y) {
 let roadOffset = 0;
 
 const W = canvas.width, H = canvas.height;
-console.log(W);
-console.log("vj");
-console.log(H);
+//console.log(W);
+//console.log("vj");
+//console.log(H);
 const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
 
 let state = {
@@ -101,6 +154,13 @@ let state = {
   minSpeed: 2,   // 👈 NEW
   maxSpeed: 12   // 👈 NEW
 };
+
+// explosion state (shown on collision)
+state.explosion = null;
+
+// UI hold state for pointer presses
+ui.holding = null;
+ui.holdFrames = 0;
 
 
 
@@ -297,6 +357,7 @@ function drawCanvasUI(){
 
   // Panel buttons (bottom-right)
   const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
+  //py = pH + 18;
   ctx.fillStyle = '#0af'; ctx.fillRect(px, py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Save', px + pW/2, py + 23);
   ctx.fillStyle = '#8af'; ctx.fillRect(px - (pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Leaders', px - (pW+8) + pW/2, py + 23);
   ctx.fillStyle = '#cfc'; ctx.fillRect(px - 2*(pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Help', px - 2*(pW+8) + pW/2, py + 23);
@@ -305,6 +366,28 @@ function drawCanvasUI(){
   if (ui.panels.save) drawSavePanel();
   if (ui.panels.leaders) drawLeadersPanel();
   if (ui.panels.controls) drawControlsPanel();
+
+  // draw control images (up/down/left/right) near bottom-right
+  const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
+  const cx = W - 150; const cy = H - 150;
+  const positions = {
+    up: { x: cx, y: cy - size },
+    down: { x: cx, y: cy + size },
+    left: { x: cx - size, y: cy },
+    right: { x: cx + size, y: cy }
+  };
+  for (const k of ['up','down','left','right']){
+    const img = controlImgs[k];
+    const p = positions[k];
+    // background circle
+    ctx.beginPath(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.arc(p.x, p.y, size/1.6, 0, Math.PI*2); ctx.fill();
+    if (img && img.complete) 
+      {ctx.globalAlpha = 0.3;
+      ctx.drawImage(img, p.x - size/1.6, p.y - size/1.6, size*1.2, size*1.2);
+      ctx.globalAlpha = 1.0;}
+    else { ctx.fillStyle = '#888'; ctx.fillRect(p.x - size/2, p.y - size/2, size, size); }
+  }
+  ui._controlPos = positions; // cache for hit tests
 
   // toast
   if (ui.toast) {
@@ -316,56 +399,219 @@ function drawCanvasUI(){
 }
 
 function drawSavePanel(){
-  const w = 420, h = 180; const x = (W - w)/2, y = (H - h)/2;
-  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('Save Score', x + 16, y + 34);
-  ctx.font = '16px sans-serif'; ctx.fillText('Name: ' + (ui.saveName || ''), x + 16, y + 74);
-  // Save button
-  ctx.fillStyle = '#0a8'; ctx.fillRect(x + w - 120, y + h - 54, 96, 36);
-  ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText('Save', x + w - 120 + 48, y + h - 28);
+  const w = 460, h = 240; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(24, 220, 210, 0.95)';
+  ctx.beginPath();
+  ctx.moveTo(x + 18, y);
+  ctx.lineTo(x + w - 18, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + 18);
+  ctx.lineTo(x + w, y + h - 18);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - 18, y + h);
+  ctx.lineTo(x + 18, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - 18);
+  ctx.lineTo(x, y + 18);
+  ctx.quadraticCurveTo(x, y, x + 18, y);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(0, 120, 140, 0.92)';
+  ctx.fillRect(x + 16, y + 16, w - 32, 52);
+  ctx.fillStyle = '#fff';
+  ctx.font = '32px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Save Score', x + 24, y + 48);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.font = '24px sans-serif';
+  ctx.fillText('Enter your name to save your score', x + 24, y + 88);
+
+  const inputY = y + 98;
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(x + 24, inputY, w - 48, 52);
+  ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 24, inputY, w - 48, 52);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.98)';
+  ctx.font = '24px sans-serif';
+  ctx.fillText(ui.saveName || 'Tap to type your name', x + 34, inputY + 35);
+
+  const buttonW = 140, buttonH = 50;
+  const btnX = x + w - buttonW - 26;
+  const btnY = y + h - buttonH - 22;
+  ctx.fillStyle = 'rgba(10,70,90,0.95)';
+  ctx.beginPath();
+  ctx.moveTo(btnX + 14, btnY);
+  ctx.lineTo(btnX + buttonW - 14, btnY);
+  ctx.quadraticCurveTo(btnX + buttonW, btnY, btnX + buttonW, btnY + 14);
+  ctx.lineTo(btnX + buttonW, btnY + buttonH - 14);
+  ctx.quadraticCurveTo(btnX + buttonW, btnY + buttonH, btnX + buttonW - 14, btnY + buttonH);
+  ctx.lineTo(btnX + 14, btnY + buttonH);
+  ctx.quadraticCurveTo(btnX, btnY + buttonH, btnX, btnY + buttonH - 14);
+  ctx.lineTo(btnX, btnY + 14);
+  ctx.quadraticCurveTo(btnX, btnY, btnX + 14, btnY);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Save', btnX + buttonW / 2, btnY + 34);
+
   ctx.restore();
 }
 
 function drawLeadersPanel(){
-  const w = 520, h = 420; const x = (W - w)/2, y = (H - h)/2;
-  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('Top Scores (IST Time)', x + 16, y + 34);
-  ctx.font = '16px sans-serif';
+  const w = 560, h = 480; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(22, 205, 220, 0.95)';
+  ctx.beginPath();
+  ctx.moveTo(x + 20, y);
+  ctx.lineTo(x + w - 20, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + 20);
+  ctx.lineTo(x + w, y + h - 20);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - 20, y + h);
+  ctx.lineTo(x + 20, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - 20);
+  ctx.lineTo(x, y + 20);
+  ctx.quadraticCurveTo(x, y, x + 20, y);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(2, 100, 120, 0.96)';
+  ctx.fillRect(x + 16, y + 16, w - 32, 56);
+  ctx.fillStyle = '#fff';
+  ctx.font = '32px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Top Scores (IST Time)', x + 26, y + 48);
+
   const list = state.leaders && state.leaders.length ? state.leaders : [];
-  if (!list.length) ctx.fillText('No scores', x + 16, y + 64);
-  else {
-    for (let i=0;i<Math.min(10, list.length); i++){
+  ctx.font = '22px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  if (!list.length) {
+    ctx.fillText('No scores yet. Play to save your best run!', x + 26, y + 100);
+  } else {
+    const rowY = y + 112;
+    const rowHeight = 42;
+    const maxRows = Math.min(10, list.length);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '22px sans-serif';
+    ctx.fillText('Rank', x + 30, rowY - 14);
+    ctx.fillText('Player', x + 110, rowY - 14);
+    ctx.fillText('Score', x + w - 210, rowY - 14);
+    ctx.fillText('Time', x + w - 90, rowY - 14);
+
+    for (let i = 0; i < maxRows; i++) {
       const it = list[i];
-       // Convert to Date object
-        const date = new Date(it.created_at);
-
-        // Format in IST
-        const options = {
-          timeZone: "Asia/Kolkata",
-          year: "numeric", month: "short", day: "numeric",
-          hour: "2-digit", minute: "2-digit", second: "2-digit"
-        };
-
-        const istTime = new Intl.DateTimeFormat("en-IN", options).format(date);
-        ctx.fillText((i+1)+'. '+it.name+' — '+it.score+' At '+istTime+' ', x + 16, y + 64 + i*28);
+      const rowTop = rowY + i * rowHeight;
+      if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(x + 18, rowTop - 24, w - 36, rowHeight);
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px sans-serif';
+      const date = new Date(it.created_at);
+      const options = {
+        timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      };
+      const istTime = new Intl.DateTimeFormat('en-IN', options).format(date);
+      ctx.fillText((i + 1) + '.', x + 30, rowTop + 8);
+      ctx.fillText(it.name, x + 110, rowTop + 8);
+      ctx.fillText(it.score.toString(), x + w - 210, rowTop + 8);
+      ctx.fillText(istTime, x + w - 90, rowTop + 8);
     }
   }
   ctx.restore();
 }
 
 function drawControlsPanel(){
-  const w = 520, h = 320; const x = (W - w)/2, y = (H - h)/2;
-  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif'; ctx.textAlign = 'left';
+  const w = 520, h = 340; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save();
+  ctx.fillStyle = 'rgba(24, 220, 210, 0.95)';
+  ctx.beginPath();
+  ctx.moveTo(x + 20, y);
+  ctx.lineTo(x + w - 20, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + 20);
+  ctx.lineTo(x + w, y + h - 20);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - 20, y + h);
+  ctx.lineTo(x + 20, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - 20);
+  ctx.lineTo(x, y + 20);
+  ctx.quadraticCurveTo(x, y, x + 20, y);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(0, 120, 140, 0.96)';
+  ctx.fillRect(x + 16, y + 16, w - 32, 56);
+  ctx.fillStyle = '#fff';
+  ctx.font = '30px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Controls & Rules', x + 26, y + 48);
+
   const lines = [
-    'Controls & Rules',
     'Arrow keys / A D to move left/right',
     'Up to speed up, Down to slow',
     'Touch controls appear on small screens',
     'Speed increases with levels; level-up every 400 points',
     'Developed by Vibhore Jain'
   ];
-  for (let i=0;i<lines.length;i++) ctx.fillText(lines[i], x + 16, y + 36 + i*28);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.font = '22px sans-serif';
+  for (let i=0;i<lines.length;i++) ctx.fillText(lines[i], x + 26, y + 90 + i*40);
+  ctx.restore();
+}
+
+function drawExplosion() {
+  if (!state.explosion) return;
+  const elapsed = Date.now() - state.explosion.start;
+  if (elapsed >= 3000) {
+    state.explosion = null;
+    return;
+  }
+  
+  const progress = elapsed / 3000;
+  const size = 80 + progress * 60;
+  const alpha = 1 - progress;
+  const ex = state.explosion.x || W/2;
+  const ey = state.explosion.y || H/2;
+  
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  
+  // outer orange ring
+  ctx.fillStyle = 'rgba(255,100,0,' + (0.8 * alpha) + ')';
+  ctx.beginPath();
+  ctx.arc(ex, ey, size * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // middle yellow
+  ctx.fillStyle = 'rgba(255,200,0,' + (0.9 * alpha) + ')';
+  ctx.beginPath();
+  ctx.arc(ex, ey, size * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // inner white hot core
+  ctx.fillStyle = 'rgba(255,255,100,' + (1 * alpha) + ')';
+  ctx.beginPath();
+  ctx.arc(ex, ey, size * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // BOOM text with oscillation and glow
+  const textY = ey - 20 + Math.sin(elapsed / 200) * 8;
+  
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(255,255,200,0.95)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  
+  ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+  ctx.font = 'bold 48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOOM!', ex, textY);
+  
   ctx.restore();
 }
 
@@ -374,6 +620,20 @@ function update(){
   if(!state.running || state.paused) return;
 
   state.frames++;
+  // handle continuous hold actions
+  if (ui.holding) {
+    ui.holdFrames++;
+    if (ui.holding === 'accelerate') {
+      // accelerate smoothly while held
+      state.speed = Math.min(state.maxSpeed, state.speed + 0.08);
+    } else if (ui.holding === 'brake') {
+      state.speed = Math.max(state.minSpeed, state.speed - 0.12);
+    } else if (ui.holding === 'left' && ui.holdFrames % 12 === 0) {
+      moveLeft();
+    } else if (ui.holding === 'right' && ui.holdFrames % 12 === 0) {
+      moveRight();
+    }
+  }
   // spawn obstacles
   state.spawnTimer++;
   if(state.spawnTimer >= state.spawnInterval){
@@ -428,6 +688,12 @@ function update(){
       // collision! end game
       state.player.alive = false;
       state.running = false;
+      // create explosion at crash point
+      state.explosion = {
+        start: Date.now(),
+        x: state.player.x,
+        y: state.player.y
+      };
       // --- SOUND ADDITION ---
       playSound("crash");
       stopBgMusic();
@@ -441,10 +707,7 @@ function update(){
     state.score += Math.floor(1 + state.level*0.3); //time based.
     //scoreEl.textContent = state.score;
   }
-  
-  // scoring: add points based on distance traveled
-  //state.score += Math.floor(state.speed);
-  //scoreEl.textContent = state.score;
+
 
   // level up every 1000 points
   const newLevel = Math.floor(state.score / 400) + 1;
@@ -531,15 +794,17 @@ function loop(){
   if(!state.running && !state.player.alive){
     // show GAME OVER overlay
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0,0,W,H);
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
-    ctx.font = "38px sans-serif";
+    ctx.font = "48px sans-serif";
     ctx.fillText("GAME OVER", W/2, H/2 - 10);
-    ctx.font = "38px sans-serif";
-    ctx.fillText("Score: " + state.score, W/2, H/2 + 22);
+    ctx.font = "32px sans-serif";
+    ctx.fillText("Score: " + state.score, W/2, H/2 + 40);
     ctx.restore();
+    // draw explosion on top of overlay
+    drawExplosion();
     // 👇 change Start button text
     ui.startLabel = 'Restart';
   }
@@ -588,8 +853,8 @@ function startGame(){
 function togglePause(){
   state.paused = !state.paused;
   ui.pauseLabel = state.paused ? 'Resume' : 'Pause';
-  if (state.paused) { playSound('pause'); sounds.bg.pause(); }
-  else { playSound('pause'); sounds.bg.play().catch(()=>{}); }
+  if (state.paused) { playSound('pause'); stopBgMusic(); }
+  else { playSound('pause'); playBgMusic(); }
 }
 
 // start button
@@ -716,6 +981,20 @@ function renderQuickLeaders() {
 
 // Handle pointer interactions on canvas
 function handleCanvasPointer(x,y){
+  // check control images first
+  if (ui._controlPos){
+    for (const k of ['up','down','left','right']){
+      const p = ui._controlPos[k];
+      const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
+      if (Math.hypot(x - p.x, y - p.y) <= size){
+        if (k === 'left') { moveLeft(); ui.holding = 'left'; ui.holdFrames = 0; }
+        else if (k === 'right') { moveRight(); ui.holding = 'right'; ui.holdFrames = 0; }
+        else if (k === 'up') { state.speed = Math.min(state.maxSpeed, state.speed + 1); ui.holding = 'accelerate'; ui.holdFrames = 0; }
+        else if (k === 'down') { state.speed = Math.max(state.minSpeed, state.speed - 1); ui.holding = 'brake'; ui.holdFrames = 0; }
+        return;
+      }
+    }
+  }
   // Start / Pause buttons (bottom-left)
   const btnW = 120, btnH = 44, gap = 12;
   const bx = 18, by = H - btnH - 18;
@@ -781,6 +1060,10 @@ function setupUI() {
     handleCanvasPointer(x,y);
   });
 
+  canvas.addEventListener('pointerup', function(e){
+    ui.holding = null; ui.holdFrames = 0; ui.inputActive = false;
+  });
+
   // keyboard shortcuts
   canvas.addEventListener('keydown', function(e){
     // typing into save name
@@ -789,13 +1072,7 @@ function setupUI() {
       else if (e.key.length === 1) ui.saveName = (ui.saveName||'') + e.key;
       e.preventDefault(); return;
     }
-    /*const k = e.key.toLowerCase();
-    if (k === 'a' || k === 'arrowleft') moveLeft();
-    if (k === 'd' || k === 'arrowright') moveRight();
-    if (k === ' ' || k === 'enter') startGame();
-    if (k === 'p') togglePause();
-    if (k === 'w' || k === 'arrowup') state.speed = Math.min(state.maxSpeed, state.speed + 1);
-    if (k === 's' || k === 'arrowdown') state.speed = Math.max(state.minSpeed, state.speed - 1);*/
+    
   });
 
   // Share

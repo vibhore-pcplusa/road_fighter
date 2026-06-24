@@ -9,8 +9,14 @@
   <link rel="stylesheet" href="style.css?v=<?= time() ?>">
 </head>
 <body>
-  <div id="game-wrap">
-    <canvas id="game" width="720" height="1200"></canvas> <!-- increased logical canvas default -->
+  <div id="game-wrap"
+     style="
+       background-image: url('assets/explosion.gif');
+       /*background-repeat: no-repeat;
+       background-position: center bottom;
+       background-size: cover;*/
+     ">
+    <canvas id="game" width="720" height="1200" style="margin-top:40px;"></canvas> <!-- increased logical canvas default -->
     <!-- All game UI (controls, panels, leaders) rendered inside canvas now -->
   </div>
 
