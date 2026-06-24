@@ -32,8 +32,8 @@ const spriteFiles = {
   mycar: "mycar.png",
   red: "red_car.png",
   blue: "blue_car.png",
-  green: "green_car.png"
-  /*oil: "oil.png"*/ // if you have one; else keep fillRect
+  green: "green_car.png",
+  gadda: "gadda.jpg" // if you have one; else keep fillRect
 };
 
 for (const key in spriteFiles) {
@@ -170,8 +170,7 @@ function drawRoad(){
   ctx.fillRect(0,0,W,H);
   // road center area
   const roadW = W*0.8;
-  const roadX = W*0.05; //(W-roadW)/2;
-  //ctx.fillStyle = "#2b2b2b";
+  const roadX = W*0.05; 
   ctx.fillStyle = "grey";
   ctx.fillRect(roadX,0,roadW,H);
   // lane lines
@@ -235,8 +234,8 @@ function render(){
       ctx.fillRect(0, 0, o.width, o.height);
     }
   } else if (o.type === "oil") {
-    ctx.fillStyle = "brown";
-    ctx.fillRect(0, 0, o.width, o.height);
+    //ctx.fillStyle = "brown";
+    ctx.drawImage(images.gadda,0, 0, o.width, o.height);
     }
     
     ctx.restore();
