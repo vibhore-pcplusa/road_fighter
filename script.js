@@ -18,7 +18,9 @@ const ui = {
   panels: { save: false, leaders: false, controls: false },
   toast: null,
   touchVisible: false,
-  saveMessage: ''
+  saveMessage: '',
+  inputActive: false,
+  hiddenInput: null
 };
 //state = state || {};
 //state.leaders = [];
@@ -366,6 +368,7 @@ function drawCanvasUI(){
   if (ui.panels.save) drawSavePanel();
   if (ui.panels.leaders) drawLeadersPanel();
   if (ui.panels.controls) drawControlsPanel();
+  positionHiddenSaveInput();
 
   // draw control images (up/down/left/right) near bottom-right
   const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
@@ -376,6 +379,7 @@ function drawCanvasUI(){
     left: { x: cx - size, y: cy },
     right: { x: cx + size, y: cy }
   };
+  ui._controlPos = positions; // cache for hit tests
   for (const k of ['up','down','left','right']){
     const img = controlImgs[k];
     const p = positions[k];
@@ -982,6 +986,85 @@ function renderQuickLeaders() {
   // UI now renders leaders from state.leaders inside canvas
 }
 
+function ensureHiddenTextInput(){
+  if (ui.hiddenInput) return ui.hiddenInput;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.maxLength = 20;
+  input.autocapitalize = 'words';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.setAttribute('aria-label', 'Save your score name');
+  input.style.position = 'absolute';
+  input.style.opacity = '0';
+  input.style.pointerEvents = 'none';
+  input.style.border = 'none';
+  input.style.background = 'transparent';
+  input.style.outline = 'none';
+  input.style.zIndex = '9999';
+  input.style.fontSize = '16px';
+  input.style.padding = '0';
+  input.style.margin = '0';
+  input.addEventListener('input', function(){
+    ui.saveName = input.value;
+  });
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      saveScoreByName(ui.saveName || 'Player');
+      ui.panels.save = false;
+      ui.inputActive = false;
+      input.blur();
+      e.preventDefault();
+    } else if (e.key === 'Escape') {
+      ui.inputActive = false;
+      input.blur();
+      e.preventDefault();
+    }
+  });
+  input.addEventListener('blur', function(){
+    ui.inputActive = false;
+  });
+  document.body.appendChild(input);
+  ui.hiddenInput = input;
+  return input;
+}
+
+function positionHiddenSaveInput(){
+  const input = ensureHiddenTextInput();
+  if (!ui.panels.save || !ui.inputActive) {
+    input.style.pointerEvents = 'none';
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / canvas.width;
+  const scaleY = rect.height / canvas.height;
+  const w = 460, h = 240;
+  const sx = (canvas.width - w) / 2;
+  const sy = (canvas.height - h) / 2;
+  const inputX = rect.left + (sx + 24) * scaleX;
+  const inputY = rect.top + (sy + 98) * scaleY;
+  input.style.left = inputX + 'px';
+  input.style.top = inputY + 'px';
+  input.style.width = (w - 48) * scaleX + 'px';
+  input.style.height = 52 * scaleY + 'px';
+  input.style.pointerEvents = 'auto';
+}
+
+function activateSaveNameInput(){
+  ui.inputActive = true;
+  ui.saveName = ui.saveName || '';
+  const input = ensureHiddenTextInput();
+  input.value = ui.saveName;
+  positionHiddenSaveInput();
+  input.focus({ preventScroll: true });
+  input.setSelectionRange(input.value.length, input.value.length);
+  setTimeout(()=>{
+    if (document.activeElement !== input) {
+      input.focus({ preventScroll: true });
+    }
+  }, 50);
+}
+
 // Handle pointer interactions on canvas
 function handleCanvasPointer(x,y){
   // check control images first
@@ -1011,20 +1094,20 @@ function handleCanvasPointer(x,y){
 
   // If save panel open, detect save button inside it
   if (ui.panels.save) {
-    const w = 420, h = 180; const sx = (W - w)/2, sy = (H - h)/2;
+    const w = 460, h = 240; const sx = (W - w)/2, sy = (H - h)/2;
     // Save button rect
-    if (rectContains(sx + w - 120, sy + h - 54, 96, 36, x, y)) {
+    if (rectContains(sx + w - 140, sy + h - 58, 140, 50, x, y)) {
       saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
     }
     // name input area: toggle focus and start typing
-    if (rectContains(sx + 16, sy + 58, w - 32, 28, x, y)) { ui.inputActive = true; ui.saveName = ui.saveName || ''; return; }
+    if (rectContains(sx + 24, sy + 98, w - 48, 52, x, y)) { activateSaveNameInput(); return; }
   }
 
   // close panels when tapping outside
   if (ui.panels.save || ui.panels.leaders || ui.panels.controls) {
-    const open = ui.panels.save ? {x:(W-420)/2,y:(H-180)/2,w:420,h:180}
-                : ui.panels.leaders ? {x:(W-520)/2,y:(H-420)/2,w:520,h:420}
-                : {x:(W-520)/2,y:(H-320)/2,w:520,h:320};
+    const open = ui.panels.save ? {x:(W-460)/2,y:(H-240)/2,w:460,h:240}
+                : ui.panels.leaders ? {x:(W-560)/2,y:(H-480)/2,w:560,h:480}
+                : {x:(W-520)/2,y:(H-340)/2,w:520,h:340};
     if (!rectContains(open.x, open.y, open.w, open.h, x, y)) { ui.panels.save = ui.panels.leaders = ui.panels.controls = false; ui.inputActive = false; }
   }
 }
@@ -1064,18 +1147,35 @@ function setupUI() {
   });
 
   canvas.addEventListener('pointerup', function(e){
-    ui.holding = null; ui.holdFrames = 0; ui.inputActive = false;
+    ui.holding = null;
+    ui.holdFrames = 0;
+    window.requestAnimationFrame(() => {
+      if (!ui.hiddenInput || document.activeElement !== ui.hiddenInput) {
+        ui.inputActive = false;
+      }
+    });
   });
 
   // keyboard shortcuts
   canvas.addEventListener('keydown', function(e){
-    // typing into save name
-    if (ui.inputActive) {
+    if (ui.inputActive && !document.activeElement) {
       if (e.key === 'Backspace') ui.saveName = (ui.saveName||'').slice(0,-1);
       else if (e.key.length === 1) ui.saveName = (ui.saveName||'') + e.key;
-      e.preventDefault(); return;
+      e.preventDefault();
+      return;
     }
-    
+  });
+
+  window.addEventListener('keydown', function(e) {
+    if (!ui.inputActive) return;
+    if (e.target === ui.hiddenInput) return;
+    if (e.key === 'Backspace') {
+      ui.saveName = (ui.saveName||'').slice(0,-1);
+      e.preventDefault();
+    } else if (e.key.length === 1) {
+      ui.saveName = (ui.saveName||'') + e.key;
+      e.preventDefault();
+    }
   });
 
   // Share
