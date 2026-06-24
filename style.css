@@ -31,7 +31,7 @@ canvas {
   background: #333;
   border-radius: 4px;
   /*width: 100%;*/
-  height: calc(100vh - 220px);
+  height: calc(100vh - 100px);
   max-height: 880px;
   object-fit: cover;
   transform-origin: top left;

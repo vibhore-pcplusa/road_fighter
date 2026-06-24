@@ -10,14 +10,17 @@
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-//const scoreEl = document.getElementById('score');
-//const levelEl = document.getElementById('level');
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const saveBtn = document.getElementById('saveBtn');
-const playerNameInput = document.getElementById('playerName');
-const leaderList = document.getElementById('leaderList');
-const touchControls = document.getElementById('touchControls');
+// UI will be drawn inside canvas. Keep minimal UI state here.
+const ui = {
+  startLabel: 'Start',
+  pauseLabel: 'Pause',
+  panels: { save: false, leaders: false, controls: false },
+  toast: null,
+  touchVisible: false,
+  saveMessage: ''
+};
+//state = state || {};
+//state.leaders = [];
 // ---load trees---
 const trees = {};
 
@@ -67,6 +70,11 @@ function playBgMusic() {
 }
 function stopBgMusic() {
   sounds.bg.pause();
+}
+
+// Canvas UI helpers
+function rectContains(rx, ry, rw, rh, x, y) {
+  return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
 }
 
 let roadOffset = 0;
@@ -262,6 +270,103 @@ function render(){
   ctx.fillRect(6,p.height-12,12,8);
   ctx.fillRect(p.width-18,p.height-12,12,8);
   ctx.restore();
+
+  // draw in-canvas UI controls
+  drawCanvasUI();
+}
+
+// Canvas UI drawing
+function drawCanvasUI(){
+  // top HUD background already drawn; draw buttons bottom-left
+  ctx.save();
+  // Start / Pause buttons (bottom-left)
+  const btnW = 120, btnH = 44, gap = 12;
+  const x = 18, y = H - btnH - 18;
+  ctx.fillStyle = '#222'; ctx.globalAlpha = 0.9;
+  ctx.fillRect(x-8, y-12, btnW*2 + gap + 24, btnH + 24);
+  ctx.globalAlpha = 1;
+
+  // Start
+  ctx.fillStyle = '#0a8';
+  ctx.fillRect(x, y, btnW, btnH);
+  ctx.fillStyle = '#000'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(ui.startLabel, x + btnW/2, y + 28);
+  // Pause
+  ctx.fillStyle = '#ffcc00';
+  ctx.fillRect(x + btnW + gap, y, btnW, btnH);
+  ctx.fillStyle = '#000'; ctx.fillText(ui.pauseLabel, x + btnW + gap + btnW/2, y + 28);
+
+  // Panel buttons (bottom-right)
+  const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
+  ctx.fillStyle = '#0af'; ctx.fillRect(px, py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Save', px + pW/2, py + 23);
+  ctx.fillStyle = '#8af'; ctx.fillRect(px - (pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Leaders', px - (pW+8) + pW/2, py + 23);
+  ctx.fillStyle = '#cfc'; ctx.fillRect(px - 2*(pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Help', px - 2*(pW+8) + pW/2, py + 23);
+
+  // Draw panels if open
+  if (ui.panels.save) drawSavePanel();
+  if (ui.panels.leaders) drawLeadersPanel();
+  if (ui.panels.controls) drawControlsPanel();
+
+  // toast
+  if (ui.toast) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(W/2 - 140, 80, 280, 40);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(ui.toast, W/2, 105);
+  }
+
+  ctx.restore();
+}
+
+function drawSavePanel(){
+  const w = 420, h = 180; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('Save Score', x + 16, y + 34);
+  ctx.font = '16px sans-serif'; ctx.fillText('Name: ' + (ui.saveName || ''), x + 16, y + 74);
+  // Save button
+  ctx.fillStyle = '#0a8'; ctx.fillRect(x + w - 120, y + h - 54, 96, 36);
+  ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText('Save', x + w - 120 + 48, y + h - 28);
+  ctx.restore();
+}
+
+function drawLeadersPanel(){
+  const w = 520, h = 420; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('Top Scores (IST Time)', x + 16, y + 34);
+  ctx.font = '16px sans-serif';
+  const list = state.leaders && state.leaders.length ? state.leaders : [];
+  if (!list.length) ctx.fillText('No scores', x + 16, y + 64);
+  else {
+    for (let i=0;i<Math.min(10, list.length); i++){
+      const it = list[i];
+       // Convert to Date object
+        const date = new Date(it.created_at);
+
+        // Format in IST
+        const options = {
+          timeZone: "Asia/Kolkata",
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        };
+
+        const istTime = new Intl.DateTimeFormat("en-IN", options).format(date);
+        ctx.fillText((i+1)+'. '+it.name+' — '+it.score+' At '+istTime+' ', x + 16, y + 64 + i*28);
+    }
+  }
+  ctx.restore();
+}
+
+function drawControlsPanel(){
+  const w = 520, h = 320; const x = (W - w)/2, y = (H - h)/2;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif'; ctx.textAlign = 'left';
+  const lines = [
+    'Controls & Rules',
+    'Arrow keys / A D to move left/right',
+    'Up to speed up, Down to slow',
+    'Touch controls appear on small screens',
+    'Speed increases with levels; level-up every 400 points',
+    'Developed by Vibhore Jain'
+  ];
+  for (let i=0;i<lines.length;i++) ctx.fillText(lines[i], x + 16, y + 36 + i*28);
+  ctx.restore();
 }
 
 // update game logic
@@ -436,21 +541,15 @@ function loop(){
     ctx.fillText("Score: " + state.score, W/2, H/2 + 22);
     ctx.restore();
     // 👇 change Start button text
-    startBtn.textContent = "Restart";
+    ui.startLabel = 'Restart';
   }
 }
 
 // basic mobile detection to show touch controls
 function setupTouch(){
-     //console.log(window.innerWidth);
-  if(window.innerWidth < 700){
-    touchControls.style.display = 'block';
-    document.getElementById('leftTouch').addEventListener('touchstart', e => { e.preventDefault(); moveLeft(); });
-    document.getElementById('rightTouch').addEventListener('touchstart', e => { e.preventDefault(); moveRight(); });
-    document.getElementById('brakeTouch').addEventListener('touchstart', e => { e.preventDefault(); state.speed = Math.max(state.minSpeed, state.speed - 2); playSound("brake"); }); // --- SOUND ADDITION ---
-    document.getElementById('accelerateTouch').addEventListener('touchstart', e => { e.preventDefault(); state.speed = Math.min(state.maxSpeed, state.speed + 2); playSound("accelerate"); }); // --- SOUND ADDITION ---
-  }
+  // handled by canvas UI now; keep placeholder for compatibility
 }
+
 
 // start / restart
 function startGame(){
@@ -471,10 +570,13 @@ function startGame(){
   state.player.alive = true;
   //scoreEl.textContent = state.score;
   //levelEl.textContent = state.level;
-  saveBtn.disabled = false;
+  // ensure UI labels
+  ui.startLabel = 'Start';
+  ui.pauseLabel = 'Pause';
+  ui.saveName = '';
 
   // reset button text while running
-  startBtn.textContent = "Start";
+  //startBtn.textContent = "Start";
 
   // --- SOUND ADDITION ---
   playSound("start");
@@ -482,70 +584,34 @@ function startGame(){
 }
 
 // pause toggle
-pauseBtn.addEventListener('click', () => {
+// Pause toggle (canvas-driven)
+function togglePause(){
   state.paused = !state.paused;
-  pauseBtn.textContent = state.paused ? "Resume" : "Pause";
-  if (state.paused) {
-    playSound("pause"); // --- SOUND ADDITION ---
-    sounds.bg.pause();
-  } else {
-    playSound("pause"); // --- SOUND ADDITION ---
-    sounds.bg.play().catch(err => console.log("Resume blocked:", err));
-  }
-});
+  ui.pauseLabel = state.paused ? 'Resume' : 'Pause';
+  if (state.paused) { playSound('pause'); sounds.bg.pause(); }
+  else { playSound('pause'); sounds.bg.play().catch(()=>{}); }
+}
 
 // start button
-startBtn.addEventListener('click', ()=>{
-  startGame();
-});
+// start button click handled via canvas; expose for compatibility
+window.startGame = startGame;
+window.togglePause = togglePause;
 
 // save score button
-saveBtn.addEventListener('click', ()=>{
-  const name = (playerNameInput.value || 'Player').substring(0,20);
-  fetch('save_score.php', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ name, score: state.score })
-  })
-  .then(r => r.json())
-  .then(j => {
-    if(j.success) {
-      alert('Score saved!');
-      fetchLeaders();
-    } else alert('Save failed');
-  })
-  .catch(e => alert('Save error'));
-  playerNameInput.value = '';
-  saveBtn.disabled = true;
-
-});
+// Save handled via canvas UI. Provide a helper to save by name.
+function saveScoreByName(name){
+  name = (name || 'Player').substring(0,20);
+  return fetch('save_score.php', {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ name, score: state.score })
+  }).then(r=>r.json()).then(j=>{
+    if(j.success){ ui.toast = 'Saved!'; setTimeout(()=>ui.toast=null,1200); fetchLeaders(); }
+    else { ui.toast = 'Save failed'; setTimeout(()=>ui.toast=null,1200); }
+  }).catch(e=>{ ui.toast = 'Save error'; setTimeout(()=>ui.toast=null,1200); });
+}
 
 // fetch leaders
 function fetchLeaders(){
-  fetch('get_scores.php')
-    .then(r => r.json())
-    .then(list => {
-      leaderList.innerHTML = '';
-      if(!list || list.length === 0) leaderList.innerHTML = '<li>No scores</li>';
-      else list.forEach(it => {
-        const li = document.createElement('li');
-        // Convert to Date object
-        const date = new Date(it.created_at);
-
-        // Format in IST
-        const options = {
-          timeZone: "Asia/Kolkata",
-          year: "numeric", month: "short", day: "numeric",
-          hour: "2-digit", minute: "2-digit", second: "2-digit"
-        };
-
-        const istTime = new Intl.DateTimeFormat("en-IN", options).format(date);
-        li.textContent = it.name + ' — ' + it.score + ' At '+istTime +' (IST)';
-        leaderList.appendChild(li);
-      });
-    }).catch(e => {
-      leaderList.innerHTML = '<li>Error</li>';
-    });
+  return fetch('get_scores.php').then(r=>r.json()).then(list=>{ state.leaders = list || []; }).catch(e=>{ state.leaders = []; });
 }
 
 function getSpeedKmh() {
@@ -562,10 +628,9 @@ loop();
 document.addEventListener('DOMContentLoaded', () => {
   const shareBtn = document.getElementById('shareBtn');
 
-  // ✅ Add this line to sanitize player input
-  document.getElementById('playerName').addEventListener('input', e => {
-    e.target.value = e.target.value.replace(/[^a-zA-Z0-9 _-]/g, '');
-  });
+  // ✅ Sanitize player input if DOM input exists (kept for backward compatibility)
+  const pnameEl = document.getElementById('playerName');
+  if (pnameEl) pnameEl.addEventListener('input', e => { e.target.value = e.target.value.replace(/[^a-zA-Z0-9 _-]/g, ''); });
   
   if (!shareBtn) return; // safety
 
@@ -646,35 +711,46 @@ function addLeaderEntry(name, score, level) {
 }
 
 function renderQuickLeaders() {
-  var quick = $id('leaderList');
-  if (!quick) return;
-  var list = loadLeadersFromStorage();
-  quick.innerHTML = '';
-  if (!list.length) {
-    quick.innerHTML = '<li>No scores</li>';
-    return;
+  // UI now renders leaders from state.leaders inside canvas
+}
+
+// Handle pointer interactions on canvas
+function handleCanvasPointer(x,y){
+  // Start / Pause buttons (bottom-left)
+  const btnW = 120, btnH = 44, gap = 12;
+  const bx = 18, by = H - btnH - 18;
+  if (rectContains(bx,by,btnW,btnH,x,y)) { startGame(); return; }
+  if (rectContains(bx + btnW + gap,by,btnW,btnH,x,y)) { togglePause(); return; }
+  // Panel buttons (bottom-right)
+  const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
+  if (rectContains(px,py,pW,pH,x,y)) { ui.panels.save = !ui.panels.save; ui.panels.leaders = false; ui.panels.controls = false; return; }
+  if (rectContains(px - (pW+8),py,pW,pH,x,y)) { ui.panels.leaders = !ui.panels.leaders; ui.panels.save = false; ui.panels.controls = false; return; }
+  if (rectContains(px - 2*(pW+8),py,pW,pH,x,y)) { ui.panels.controls = !ui.panels.controls; ui.panels.save = false; ui.panels.leaders = false; return; }
+
+  // If save panel open, detect save button inside it
+  if (ui.panels.save) {
+    const w = 420, h = 180; const sx = (W - w)/2, sy = (H - h)/2;
+    // Save button rect
+    if (rectContains(sx + w - 120, sy + h - 54, 96, 36, x, y)) {
+      saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
+    }
+    // name input area: toggle focus and start typing
+    if (rectContains(sx + 16, sy + 58, w - 32, 28, x, y)) { ui.inputActive = true; ui.saveName = ui.saveName || ''; return; }
   }
-  list.forEach(function(it){
-    var li = document.createElement('li');
-    li.textContent = it.name + ' — ' + it.score;
-    quick.appendChild(li);
-  });
+
+  // close panels when tapping outside
+  if (ui.panels.save || ui.panels.leaders || ui.panels.controls) {
+    const open = ui.panels.save ? {x:(W-420)/2,y:(H-180)/2,w:420,h:180}
+                : ui.panels.leaders ? {x:(W-520)/2,y:(H-420)/2,w:520,h:420}
+                : {x:(W-520)/2,y:(H-320)/2,w:520,h:320};
+    if (!rectContains(open.x, open.y, open.w, open.h, x, y)) { ui.panels.save = ui.panels.leaders = ui.panels.controls = false; ui.inputActive = false; }
+  }
 }
 
 function renderFullLeaders() {
-  var container = $id('leaderListFull');
-  if (!container) return;
+  // populate state.leaders from local storage backup
   var list = loadLeadersFromStorage();
-  container.innerHTML = '';
-  if (!list.length) {
-    container.innerHTML = '<li>No scores</li>';
-    return;
-  }
-  list.forEach(function(it, idx){
-    var li = document.createElement('li');
-    li.textContent = (idx+1) + '. ' + it.name + ' — ' + it.score + ' (L' + it.level + ')';
-    container.appendChild(li);
-  });
+  state.leaders = list || [];
 }
 
 // Panels & buttons
@@ -697,71 +773,29 @@ function closePanel(id) {
 
 // Setup event bindings
 function setupUI() {
-  // open buttons (some already attached in inline script, reattach safely)
-  var mappings = [
-    {btn:'openSave', panel:'savePanel'},
-    {btn:'openLeaders', panel:'leadersPanel'},
-    {btn:'openControls', panel:'controlsPanel'}
-  ];
-  mappings.forEach(function(m){
-    var btn = $id(m.btn);
-    if (btn) btn.addEventListener('click', function(e){ e.stopPropagation(); openPanel(m.panel); });
+  // All UI is rendered inside canvas. Bind pointer events for canvas interactions.
+  canvas.addEventListener('pointerdown', function(e){
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    handleCanvasPointer(x,y);
   });
 
-  // close buttons in panels
-  document.querySelectorAll('.panel .close').forEach(function(btn){
-    var target = btn.getAttribute('data-close');
-    if (target) btn.addEventListener('click', function(e){ e.stopPropagation(); closePanel(target); });
-  });
-
-  // close when clicking outside panels (keeps index behavior)
-  document.addEventListener('click', function(e){
-    var insidePanel = !!e.target.closest('.panel');
-    var clickedToggler = !!e.target.closest('#openSave, #openLeaders, #openControls');
-    if (!insidePanel && !clickedToggler) {
-      ['savePanel','leadersPanel','controlsPanel'].forEach(closePanel);
+  // keyboard shortcuts
+  canvas.addEventListener('keydown', function(e){
+    // typing into save name
+    if (ui.inputActive) {
+      if (e.key === 'Backspace') ui.saveName = (ui.saveName||'').slice(0,-1);
+      else if (e.key.length === 1) ui.saveName = (ui.saveName||'') + e.key;
+      e.preventDefault(); return;
     }
-  });
-
-  // Save score action
-  var saveBtn = $id('saveBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', function(){
-      var nameInput = $id('playerName');
-      var name = nameInput ? nameInput.value.trim() : 'Player';
-      var score = getCurrentScore();
-      var level = getCurrentLevel();
-      if (!name) {
-        // quick inline feedback
-        if (nameInput) {
-          nameInput.focus();
-          nameInput.style.border = '1px solid #e66';
-          setTimeout(function(){ nameInput.style.border=''; }, 900);
-        }
-        return;
-      }
-      addLeaderEntry(name, score, level);
-      renderQuickLeaders();
-      renderFullLeaders();
-      // success feedback
-      var original = saveBtn.textContent;
-      saveBtn.textContent = 'Saved ✓';
-      setTimeout(function(){ saveBtn.textContent = original; }, 1000);
-      // optionally close panel after saving
-      setTimeout(function(){ closePanel('savePanel'); }, 600);
-    });
-  }
-
-  // Start / Pause bridging
-  var startBtn = $id('startBtn');
-  var pauseBtn = $id('pauseBtn');
-  if (startBtn) startBtn.addEventListener('click', function(){
-    if (typeof window.startGame === 'function') return window.startGame();
-    window.dispatchEvent(new CustomEvent('gameStart'));
-  });
-  if (pauseBtn) pauseBtn.addEventListener('click', function(){
-    if (typeof window.pauseGame === 'function') return window.pauseGame();
-    window.dispatchEvent(new CustomEvent('gamePause'));
+    /*const k = e.key.toLowerCase();
+    if (k === 'a' || k === 'arrowleft') moveLeft();
+    if (k === 'd' || k === 'arrowright') moveRight();
+    if (k === ' ' || k === 'enter') startGame();
+    if (k === 'p') togglePause();
+    if (k === 'w' || k === 'arrowup') state.speed = Math.min(state.maxSpeed, state.speed + 1);
+    if (k === 's' || k === 'arrowdown') state.speed = Math.max(state.minSpeed, state.speed - 1);*/
   });
 
   // Share
@@ -822,6 +856,8 @@ function setupUI() {
   // Initialize leader lists
   renderQuickLeaders();
   renderFullLeaders();
+  // focus canvas for keyboard input
+  try { canvas.tabIndex = canvas.tabIndex || 0; canvas.focus(); } catch(e) {}
 }
 
 // Expose a tiny API if the game wants to call into UI (optional)
@@ -912,9 +948,9 @@ updateTouchVisibility();
 
 // Initialize on DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupUI);
+  document.addEventListener('DOMContentLoaded', function(){ setupUI(); fetchLeaders(); renderQuickLeaders(); });
 } else {
-  setupUI();
+  setupUI(); fetchLeaders(); renderQuickLeaders();
 }
 
 
