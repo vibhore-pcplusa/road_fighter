@@ -19,6 +19,7 @@ body {
 
 /* Game area */
 #game-wrap {
+  position: relative;
   background: #111;
   padding: 10px;
   border-radius: 8px;
@@ -28,6 +29,73 @@ body {
   flex-direction: column;
   min-width: 320px;
   overflow: hidden;
+}
+
+.hud-overlay {
+  position: absolute;
+  top: 74px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.settings-toggle {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(10, 18, 32, 0.86);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.34);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.settings-toggle img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.25));
+}
+
+.quick-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateX(18px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.quick-menu.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quick-action {
+  min-width: 110px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  background: rgba(11, 23, 39, 0.95);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.22);
+  cursor: pointer;
+}
+
+.quick-action:hover {
+  transform: translateX(-2px);
+  background: rgba(28, 52, 83, 0.98);
 }
 
 /* Canvas sizing (drawing resolution handled in JS) */
@@ -40,6 +108,7 @@ canvas {
   max-height: none;
   object-fit: cover;
   transform-origin: top left;
+  margin-top: 40px;
 }
 
 /* Visual canvas scale on wide screens to make cars appear larger */

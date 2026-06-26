@@ -20,7 +20,8 @@ const ui = {
   touchVisible: false,
   saveMessage: '',
   inputActive: false,
-  hiddenInput: null
+  hiddenInput: null,
+  quickMenuOpen: false
 };
 //state = state || {};
 //state.leaders = [];
@@ -1118,6 +1119,40 @@ function renderFullLeaders() {
   state.leaders = list || [];
 }
 
+function closeQuickMenu() {
+  ui.quickMenuOpen = false;
+  const menu = document.getElementById('quickMenu');
+  const toggle = document.getElementById('settingsToggle');
+  if (menu) {
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden', 'true');
+  }
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+function toggleQuickMenu(force) {
+  const menu = document.getElementById('quickMenu');
+  const toggle = document.getElementById('settingsToggle');
+  if (!menu || !toggle) return;
+  const shouldOpen = typeof force === 'boolean' ? force : !ui.quickMenuOpen;
+  ui.quickMenuOpen = shouldOpen;
+  menu.classList.toggle('open', shouldOpen);
+  menu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+  toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+}
+
+function openQuickPanel(panelName) {
+  ui.panels.save = false;
+  ui.panels.leaders = false;
+  ui.panels.controls = false;
+
+  if (panelName === 'save') ui.panels.save = true;
+  if (panelName === 'leaders') ui.panels.leaders = true;
+  if (panelName === 'controls') ui.panels.controls = true;
+
+  closeQuickMenu();
+}
+
 // Panels & buttons
 function openPanel(id) {
   var el = $id(id);
@@ -1138,6 +1173,30 @@ function closePanel(id) {
 
 // Setup event bindings
 function setupUI() {
+  const settingsToggle = document.getElementById('settingsToggle');
+  const quickMenu = document.getElementById('quickMenu');
+
+  if (settingsToggle) {
+    settingsToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleQuickMenu();
+    });
+  }
+
+  if (quickMenu) {
+    quickMenu.querySelectorAll('.quick-action').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        openQuickPanel(btn.getAttribute('data-panel'));
+      });
+    });
+  }
+
+  document.addEventListener('click', function(e){
+    if (!e.target.closest('.hud-overlay')) {
+      closeQuickMenu();
+    }
+  });
+
   // All UI is rendered inside canvas. Bind pointer events for canvas interactions.
   canvas.addEventListener('pointerdown', function(e){
     const rect = canvas.getBoundingClientRect();
