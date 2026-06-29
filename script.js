@@ -358,13 +358,6 @@ function drawCanvasUI(){
   ctx.fillRect(x + btnW + gap, y, btnW, btnH);
   ctx.fillStyle = '#000'; ctx.fillText(ui.pauseLabel, x + btnW + gap + btnW/2, y + 28);
 
-  // Panel buttons (bottom-right)
-  const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
-  //py = pH + 18;
-  ctx.fillStyle = '#0af'; ctx.fillRect(px, py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Save', px + pW/2, py + 23);
-  ctx.fillStyle = '#8af'; ctx.fillRect(px - (pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Leaders', px - (pW+8) + pW/2, py + 23);
-  ctx.fillStyle = '#cfc'; ctx.fillRect(px - 2*(pW+8), py, pW, pH); ctx.fillStyle = '#000'; ctx.fillText('Help', px - 2*(pW+8) + pW/2, py + 23);
-
   // Draw panels if open
   if (ui.panels.save) drawSavePanel();
   if (ui.panels.leaders) drawLeadersPanel();
