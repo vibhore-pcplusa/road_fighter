@@ -29,8 +29,10 @@ const ui = {
 const trees = {};
 
 for (let i = 1; i <= 6; i++) {
-    trees[`t${i}`] = new Image();
-    trees[`t${i}`].src = `assets/trees/t${i}.png`;
+  trees[`t${i}`] = new Image();
+  trees[`t${i}`].onload = function(){ /* loaded */ };
+  trees[`t${i}`].onerror = function(){};
+  trees[`t${i}`].src = `./assets/trees/t${i}.png`;
 }
 
 // --- Sprites ---
@@ -45,19 +47,47 @@ const spriteFiles = {
 
 for (const key in spriteFiles) {
   images[key] = new Image();
-  images[key].src = "assets/" + spriteFiles[key]; // adjust path if needed
+  images[key].onload = function(){ /* loaded */ };
+  images[key].onerror = function(){};
+  images[key].src = "./assets/" + spriteFiles[key]; // adjust path if needed
+}
+
+// Retry loader for important sprite `mycar` in case of intermittent failures
+if (images.mycar) {
+  images.mycar._retryCount = 0;
+  (function attachRetry(img){
+    function handleError(){
+      if (img._retryCount < 2) {
+        img._retryCount++;
+        const base = img.src.split('?')[0];
+        img.src = base + '?r=' + Date.now();
+      } else {
+        img.removeEventListener('error', handleError);
+      }
+    }
+    function handleLoad(){
+      img.removeEventListener('load', handleLoad);
+      img.removeEventListener('error', handleError);
+    }
+    img.addEventListener('error', handleError);
+    img.addEventListener('load', handleLoad);
+  })(images.mycar);
 }
 
 // control button images (up/down/left/right)
 const controlImgs = {};
 ['up','down','left','right'].forEach(k => {
   controlImgs[k] = new Image();
-  controlImgs[k].src = `assets/${k}.jpg`;
+  controlImgs[k].onload = function(){ /* loaded */ };
+  controlImgs[k].onerror = function(){};
+  controlImgs[k].src = `./assets/${k}.jpg`;
 });
 
 // explosion gif
 const explosionImg = new Image();
-explosionImg.src = 'assets/explosion.gif';
+explosionImg.onload = function(){};
+explosionImg.onerror = function(){};
+explosionImg.src = './assets/explosion.gif';
 
 
 // --- SOUND ADDITION ---
@@ -258,12 +288,15 @@ function drawRoad(){
 
 // main render
 function render(){
+  if (!assetsReady) {
+    drawLoadingScreen(_assetsProgress || 0);
+    return;
+  }
   ctx.clearRect(0,0,W,H);
   drawRoad();
   for(const tree of state.trees) {
     const img = trees[tree.sprite];
-
-    if(img && img.complete) {
+    if(img && img.complete && img.naturalWidth && img.naturalWidth > 0) {
         ctx.drawImage(
             img,
             tree.x,
@@ -298,15 +331,20 @@ function render(){
     if (o.type === "car") {
     const carChoices = [images.red, images.blue, images.green];
     const img = carChoices[o.lane % carChoices.length];
-    if (img.complete) {
+    if (img && img.complete && img.naturalWidth && img.naturalWidth > 0) {
             ctx.drawImage(img, 0, 0, o.width, o.height);
     } else {
       ctx.fillStyle = o.color;
       ctx.fillRect(0, 0, o.width, o.height);
     }
   } else if (o.type === "oil") {
-    //ctx.fillStyle = "brown";
-    ctx.drawImage(images.gadda,0, 0, o.width, o.height);
+    // draw oil sprite if available
+    if (images.gadda && images.gadda.complete && images.gadda.naturalWidth && images.gadda.naturalWidth > 0) {
+      ctx.drawImage(images.gadda,0, 0, o.width, o.height);
+    } else {
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, 0, o.width, o.height);
+    }
     }
     
     ctx.restore();
@@ -318,7 +356,7 @@ function render(){
   p.x += (p.targetX - p.x) * 0.25;
   ctx.save();
   ctx.translate(p.x - p.width/2, p.y);
-  if (images.mycar.complete) {
+  if (images.mycar && images.mycar.complete && images.mycar.naturalWidth && images.mycar.naturalWidth > 0) {
   ctx.drawImage(images.mycar, 0, 0, p.width, p.height);
 } else {
   // fallback rectangle while image is loading
@@ -379,7 +417,7 @@ function drawCanvasUI(){
     const p = positions[k];
     // background circle
     ctx.beginPath(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.arc(p.x, p.y, size/1.6, 0, Math.PI*2); ctx.fill();
-    if (img && img.complete) 
+    if (img && img.complete && img.naturalWidth && img.naturalWidth > 0)
       {ctx.globalAlpha = 0.3;
       ctx.drawImage(img, p.x - size/1.6, p.y - size/1.6, size*1.2, size*1.2);
       ctx.globalAlpha = 1.0;}
@@ -772,14 +810,12 @@ function handleInput(){
 }
 
 function moveLeft(){
-  console.log("move left");
   playSound("move"); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.max(0, p.lane - 1);
   p.targetX = lanes[p.lane];
 }
 function moveRight(){
-  console.log("move right");
   playSound("move"); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.min(2, p.lane + 1);
@@ -884,10 +920,101 @@ function getSpeedKmh() {
   return Math.round(state.speed * 10); // 10x multiplier → tweak for realism
 }
 
-// initial setup
-setupTouch();
-fetchLeaders();
-//startGame(); It should start only on button click.
+// Preloader: wait for images and sounds before continuing
+let assetsReady = false;
+let _assetsProgress = 0;
+let _assetsLoadingStuck = false;
+
+function drawLoadingScreen(pct){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#111'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Loading ' + pct + '%', W/2, H/2 - 40);
+  if (_assetsLoadingStuck) {
+    ctx.font = '18px sans-serif';
+    ctx.fillText('Still loading assets, please wait...', W/2, H/2);
+  }
+  // progress bar
+  const bw = Math.min(600, W * 0.7);
+  const bh = 24;
+  const bx = (W - bw)/2;
+  const by = H/2 + 20;
+  ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#0a8'; ctx.fillRect(bx, by, Math.round(bw * pct/100), bh);
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+}
+
+function preloadAssets(options){
+  options = options || {};
+  const timeoutMs = options.timeoutMs || 30000; // allow up to 30s for slow mobile networks
+  const imgs = [];
+  // collect trees
+  for (let i=1;i<=6;i++) imgs.push(trees[`t${i}`]);
+  // sprites
+  for (const k in images) imgs.push(images[k]);
+  // controls
+  for (const k in controlImgs) imgs.push(controlImgs[k]);
+  // explosion
+  imgs.push(explosionImg);
+
+  const audios = [];
+  for (const k in sounds) {
+    try {
+      const a = sounds[k];
+      if (a) audios.push(a);
+    } catch(e){}
+  }
+
+  const totalImages = imgs.length;
+  if (totalImages === 0) { assetsReady = true; _assetsProgress = 100; return Promise.resolve(); }
+
+  let loadedImages = 0;
+  const markImageLoaded = function(){ loadedImages++; _assetsProgress = Math.round(loadedImages/totalImages*100); if (_assetsProgress>100) _assetsProgress=100; };
+
+  return new Promise((resolve)=>{
+    let finished = false;
+    const failedImages = [];
+    const tryFinish = function(){ if (finished) return; if (loadedImages >= totalImages){ finished = true; assetsReady = true; _assetsProgress = 100; resolve(); } };
+
+    imgs.forEach(function(img){
+      if (!img) { markImageLoaded(); tryFinish(); return; }
+      if (img.complete && img.naturalWidth && img.naturalWidth > 0) { markImageLoaded(); tryFinish(); return; }
+      const onl = function(){ if (img.naturalWidth && img.naturalWidth > 0) { img.removeEventListener('load', onl); img.removeEventListener('error', one); markImageLoaded(); tryFinish(); } else { one(); } };
+      const one = function(){ img.removeEventListener('load', onl); img.removeEventListener('error', one); failedImages.push(img && img.src); markImageLoaded(); tryFinish(); if (_assetsLoadingStuck) _assetsLoadingStuck = false; };
+      img.addEventListener('load', onl);
+      img.addEventListener('error', one);
+      try { if (!img.src) img.src = img.getAttribute && img.getAttribute('data-src') || img.src || ''; } catch(e){}
+    });
+
+    audios.forEach(function(a){
+      if (!a) return;
+      const onCan = function(){ a.removeEventListener('canplaythrough', onCan); a.removeEventListener('loadeddata', onCan); a.removeEventListener('error', onErr); };
+      const onErr = function(){ a.removeEventListener('canplaythrough', onCan); a.removeEventListener('loadeddata', onCan); a.removeEventListener('error', onErr); };
+      a.addEventListener('canplaythrough', onCan, { once: true });
+      a.addEventListener('loadeddata', onCan, { once: true });
+      a.addEventListener('error', onErr, { once: true });
+      try { a.preload = 'auto'; a.load(); } catch(e){ onErr(); }
+    });
+
+    setTimeout(function(){ if (finished) return; _assetsLoadingStuck = true; _assetsProgress = Math.round(loadedImages/totalImages*100);
+      // keep waiting until images actually complete or fail
+    }, timeoutMs);
+  });
+}
+
+// start preloading and keep the main loop running to render progress
+preloadAssets().then(()=>{
+  // small delay to let UI show 100%
+  setTimeout(function(){
+    // continue with original initialization
+    setupTouch();
+    setupUI();
+    fetchLeaders();
+    // Do NOT auto-start the game; keep Start button behavior as before
+  }, 180);
+});
+
+// start main render loop; it will show loading until assetsReady becomes true
 loop();
 
 // === SHARE BUTTON HANDLER ===
@@ -909,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', () => {
           //url: 'https://rohan.manishadaycare.in/road_fighter/'
         });
       } catch (err) {
-        console.log('Share cancelled', err);
+        // share action cancelled or unavailable
       }
     });
   } else {
