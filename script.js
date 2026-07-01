@@ -83,11 +83,7 @@ const controlImgs = {};
   controlImgs[k].src = `./assets/${k}.jpg`;
 });
 
-// explosion gif
-const explosionImg = new Image();
-explosionImg.onload = function(){};
-explosionImg.onerror = function(){};
-explosionImg.src = './assets/explosion.gif';
+
 
 
 // --- SOUND ADDITION ---
@@ -106,12 +102,22 @@ sounds.bg.volume = 0.8;
 // Audio unlock handling: browsers block play() until a user gesture. We'll queue plays
 let audioUnlocked = false;
 const _audioQueue = [];
+const _activeSounds = [];
+
+function _cleanupActiveSound(sound) {
+  const idx = _activeSounds.indexOf(sound);
+  if (idx >= 0) _activeSounds.splice(idx, 1);
+}
 
 function _playSoundNow(sound) {
   if (!sounds[sound]) return;
   try {
     const s = sounds[sound].cloneNode();
-    s.play().catch(()=>{});
+    _activeSounds.push(s);
+    const cleanup = function(){ _cleanupActiveSound(s); };
+    s.addEventListener('ended', cleanup);
+    s.addEventListener('pause', cleanup);
+    s.play().catch(()=>{ cleanup(); });
   } catch (e) {}
 }
 
@@ -123,10 +129,42 @@ function playSound(sound) {
   _playSoundNow(sound);
 }
 
+function stopAllActiveSounds() {
+  while (_activeSounds.length) {
+    const s = _activeSounds.pop();
+    try { s.pause(); s.currentTime = 0; } catch (e) {}
+  }
+  _audioQueue.length = 0;
+}
+
 let _bgPending = false;
+function ensureBgMusicReady() {
+  if (!sounds.bg) return;
+  if (sounds.bg.readyState >= 3) return;
+  const onReady = function(){
+    if (_bgPending && state.running && !state.paused) {
+      playBgMusic();
+    }
+  };
+  sounds.bg.addEventListener('canplaythrough', onReady, { once: true });
+  try { sounds.bg.load(); } catch(e) {}
+}
+
 function playBgMusic() {
   if (!audioUnlocked) { _bgPending = true; return; }
-  try { sounds.bg.currentTime = 0; sounds.bg.play().catch(()=>{}); } catch(e) {}
+  try {
+    sounds.bg.currentTime = 0;
+    const promise = sounds.bg.play();
+    if (promise && typeof promise.then === 'function') {
+      promise.catch(() => {
+        _bgPending = true;
+        ensureBgMusicReady();
+      });
+    }
+  } catch(e) {
+    _bgPending = true;
+    ensureBgMusicReady();
+  }
 }
 function stopBgMusic() { try { sounds.bg.pause(); } catch(e) {} }
 
@@ -855,6 +893,10 @@ function setupTouch(){
 
 // start / restart
 function startGame(){
+  if (!audioUnlocked) unlockAudio();
+  stopAllActiveSounds();
+  stopBgMusic();
+
   state.trees.length = 0;
   state.running = true;
   state.paused = false;
@@ -954,8 +996,7 @@ function preloadAssets(options){
   for (const k in images) imgs.push(images[k]);
   // controls
   for (const k in controlImgs) imgs.push(controlImgs[k]);
-  // explosion
-  imgs.push(explosionImg);
+  
 
   const audios = [];
   for (const k in sounds) {

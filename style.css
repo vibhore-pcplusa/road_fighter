@@ -3,20 +3,19 @@ html, body {
   height: 100%;
   overflow: hidden; /* disable horizontal and vertical scroll */
 }
-body {
-  font-family: Arial, sans-serif;
-  background: #222;
-  color: #eee;
-  margin: 0;
-  display: flex;
-  gap: 20px;
-  padding: 0; /* remove extra padding to avoid scrollbars */
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  box-sizing: border-box;
-}
 
+body {
+    height: 100vh;
+    box-sizing: border-box;
+    background-color: #fee440;
+}
+svg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+}
 /* Game area */
 #game-wrap {
   position: relative;
