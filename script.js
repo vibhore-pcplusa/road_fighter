@@ -21,10 +21,8 @@ const ui = {
   saveMessage: '',
   inputActive: false,
   hiddenInput: null,
-  quickMenuOpen: false
+  quickMenuOpen: true
 };
-//state = state || {};
-//state.leaders = [];
 // ---load trees---
 const trees = {};
 
@@ -42,7 +40,7 @@ const spriteFiles = {
   red: "red_car.png",
   blue: "blue_car.png",
   green: "green_car.png",
-  gadda: "gadda.jpg" // if you have one; else keep fillRect
+  gadda: "gadda.jpg" 
 };
 
 for (const key in spriteFiles) {
@@ -82,9 +80,6 @@ const controlImgs = {};
   controlImgs[k].onerror = function(){};
   controlImgs[k].src = `./assets/${k}.jpg`;
 });
-
-
-
 
 // --- SOUND ADDITION ---
 const sounds = {
@@ -207,8 +202,8 @@ const W = canvas.width, H = canvas.height;
 //console.log(W);
 //console.log("vj");
 //console.log(H);
+//const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
 const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
-
 let state = {
   running: false,
   paused: false,
@@ -287,8 +282,8 @@ function spawnTree() {
 
     state.trees.push({
         x: side === 'left'
-    ? -15 + Math.random() * 10
-    : canvas.width - 115 + Math.random() * 10,
+    ? -10 + Math.random() * 10
+    : canvas.width - 100 + Math.random() * 10,
         y: -80,
         width: 50,
         height: 70,
@@ -310,8 +305,8 @@ function drawRoad(){
   // road center area
   const roadW = W*0.8;
   const roadX = W*0.05; 
-  ctx.fillStyle = "grey";
-  ctx.fillRect(roadX,0,roadW,H);
+  ctx.fillStyle = "gray";
+  ctx.fillRect(roadX,0,roadW+30,H);
   // lane lines
   ctx.strokeStyle = "#bfbfbf";
   ctx.lineWidth = 6;
@@ -1281,6 +1276,7 @@ function renderFullLeaders() {
 }
 
 function closeQuickMenu() {
+  console.log(1284);
   ui.quickMenuOpen = false;
   const menu = document.getElementById('quickMenu');
   const toggle = document.getElementById('settingsToggle');
@@ -1292,6 +1288,7 @@ function closeQuickMenu() {
 }
 
 function toggleQuickMenu(force) {
+  console.log("toggling1296");
   const menu = document.getElementById('quickMenu');
   const toggle = document.getElementById('settingsToggle');
   if (!menu || !toggle) return;
@@ -1334,6 +1331,7 @@ function closePanel(id) {
 
 // Setup event bindings
 function setupUI() {
+  console.log("1339 running twice");
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
 
@@ -1543,15 +1541,7 @@ window.addEventListener('resize', updateTouchVisibility);
 window.addEventListener('orientationchange', updateTouchVisibility);
 updateTouchVisibility();
 
-// ensure canvas sync runs after possible CSS transform changes
-//setTimeout(syncCanvasSize, 300);
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function(){ setupUI(); fetchLeaders(); renderQuickLeaders(); });
-} else {
-  setupUI(); fetchLeaders(); renderQuickLeaders();
-}
 
 
 function resizeCanvas() {
