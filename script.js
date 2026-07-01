@@ -347,13 +347,13 @@ function render(){
     ctx.fillStyle = "#fff";
     ctx.font = "26px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Level: " + state.level, 100, 22);
+    ctx.fillText("Level: " + state.level, 100, 30);
 
     ctx.textAlign = "center";
-    ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 22);
+    ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 30);
 
     ctx.textAlign = "right";
-    ctx.fillText("Score: " + state.score, W - 130, 22);
+    ctx.fillText("Score: " + state.score, W - 130, 30);
     ctx.restore();
     // HUD Header Dashboard Ends
 
@@ -411,11 +411,11 @@ function render(){
 
 // Canvas UI drawing
 function drawCanvasUI(){
-  // top HUD background already drawn; draw buttons bottom-left
+  // top HUD background already drawn; draw buttons top-left
   ctx.save();
-  // Start / Pause buttons (bottom-left)
+  // Start / Pause buttons (top-left)
   const btnW = 120, btnH = 44, gap = 12;
-  const x = 18, y = H - btnH - 18;
+  const x = 18, y = 48;
   ctx.fillStyle = '#222'; ctx.globalAlpha = 0.9;
   ctx.fillRect(x-8, y-12, btnW*2 + gap + 24, btnH + 24);
   ctx.globalAlpha = 1;
@@ -451,7 +451,7 @@ function drawCanvasUI(){
     // background circle
     ctx.beginPath(); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.arc(p.x, p.y, size/1.6, 0, Math.PI*2); ctx.fill();
     if (img && img.complete && img.naturalWidth && img.naturalWidth > 0)
-      {ctx.globalAlpha = 0.3;
+      {ctx.globalAlpha = 0.7;
       ctx.drawImage(img, p.x - size/1.6, p.y - size/1.6, size*1.2, size*1.2);
       ctx.globalAlpha = 1.0;}
     else { ctx.fillStyle = '#888'; ctx.fillRect(p.x - size/2, p.y - size/2, size, size); }
@@ -614,20 +614,21 @@ function drawControlsPanel(){
   ctx.fill();
 
   ctx.fillStyle = 'rgba(0, 120, 140, 0.96)';
-  ctx.fillRect(x + 16, y + 16, w - 32, 56);
+  ctx.fillRect(x + 16, y + 16, w - 32, 47);
   ctx.fillStyle = '#fff';
   ctx.font = '30px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('Controls & Rules', x + 26, y + 48);
+  ctx.fillText('Controls & Rules', x + 26, y + 52);
 
   const lines = [
-    ' ',
+    
     'Arrow keys to move left/right',
     'Up to speed up, Down to slow',
     'Speed increases with levels;',
     'It level-up every 400 points',
     'Developed by Vibhore Jain',
     'Email Id - vibhore.mit@gmail.com'
+    
   ];
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.font = '26px sans-serif';
@@ -1240,7 +1241,7 @@ function handleCanvasPointer(x,y){
   }
   // Start / Pause buttons (bottom-left)
   const btnW = 120, btnH = 44, gap = 12;
-  const bx = 18, by = H - btnH - 18;
+  const bx = 18, by = 48;
   if (rectContains(bx,by,btnW,btnH,x,y)) { startGame(); return; }
   if (rectContains(bx + btnW + gap,by,btnW,btnH,x,y)) { togglePause(); return; }
   // Panel buttons (bottom-right)
