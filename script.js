@@ -94,102 +94,41 @@ const sounds = {
 };
 sounds.bg.loop = true;
 sounds.bg.volume = 0.8;
-// Audio unlock handling: browsers block play() until a user gesture. We'll queue plays
-let audioUnlocked = false;
-const _audioQueue = [];
-const _activeSounds = [];
 
-function _cleanupActiveSound(sound) {
-  const idx = _activeSounds.indexOf(sound);
-  if (idx >= 0) _activeSounds.splice(idx, 1);
-}
-
-function _playSoundNow(sound) {
-  if (!sounds[sound]) return;
-  try {
-    const s = sounds[sound].cloneNode();
-    _activeSounds.push(s);
-    const cleanup = function(){ _cleanupActiveSound(s); };
-    s.addEventListener('ended', cleanup);
-    s.addEventListener('pause', cleanup);
-    s.play().catch(()=>{ cleanup(); });
-  } catch (e) {}
-}
+const activeSounds = [];
 
 function playSound(sound) {
-  if (!audioUnlocked) {
-    _audioQueue.push(() => _playSoundNow(sound));
-    return;
-  }
-  _playSoundNow(sound);
+  if (!sounds[sound]) return;
+  try {
+    const audio = sounds[sound].cloneNode();
+    activeSounds.push(audio);
+    const removeFromList = () => {
+      const index = activeSounds.indexOf(audio);
+      if (index >= 0) activeSounds.splice(index, 1);
+    };
+    audio.addEventListener('ended', removeFromList);
+    audio.addEventListener('pause', removeFromList);
+    audio.play().catch(removeFromList);
+  } catch (e) {}
 }
 
 function stopAllActiveSounds() {
-  while (_activeSounds.length) {
-    const s = _activeSounds.pop();
-    try { s.pause(); s.currentTime = 0; } catch (e) {}
+  while (activeSounds.length) {
+    const audio = activeSounds.pop();
+    try { audio.pause(); audio.currentTime = 0; } catch (e) {}
   }
-  _audioQueue.length = 0;
-}
-
-let _bgPending = false;
-function ensureBgMusicReady() {
-  if (!sounds.bg) return;
-  if (sounds.bg.readyState >= 3) return;
-  const onReady = function(){
-    if (_bgPending && state.running && !state.paused) {
-      playBgMusic();
-    }
-  };
-  sounds.bg.addEventListener('canplaythrough', onReady, { once: true });
-  try { sounds.bg.load(); } catch(e) {}
 }
 
 function playBgMusic() {
-  if (!audioUnlocked) { _bgPending = true; return; }
   try {
     sounds.bg.currentTime = 0;
-    const promise = sounds.bg.play();
-    if (promise && typeof promise.then === 'function') {
-      promise.catch(() => {
-        _bgPending = true;
-        ensureBgMusicReady();
-      });
-    }
-  } catch(e) {
-    _bgPending = true;
-    ensureBgMusicReady();
-  }
-}
-function stopBgMusic() { try { sounds.bg.pause(); } catch(e) {} }
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-  // attempt to prime audio by playing+pausing a muted clone of each sound
-  try {
-    for (const k in sounds) {
-      try {
-        const n = sounds[k].cloneNode(); n.muted = true; n.volume = 0; n.play().then(()=>{ try{ n.pause(); n.currentTime = 0; }catch(e){} }).catch(()=>{});
-      } catch(e) {}
-    }
+    sounds.bg.play().catch(()=>{});
   } catch (e) {}
-  audioUnlocked = true;
-  // drain queue
-  while(_audioQueue.length) {
-    try { _audioQueue.shift()(); } catch(e) {}
-  }
-  ui.toast = 'Audio enabled'; setTimeout(()=>{ ui.toast = null; }, 900);
-  if (_bgPending && state.running && !state.paused) { _bgPending = false; playBgMusic(); }
 }
 
-// listen for first user gesture to unlock audio
-function _attachAudioUnlock() {
-  const once = (e) => { unlockAudio(); window.removeEventListener('pointerdown', once); window.removeEventListener('keydown', once); window.removeEventListener('touchstart', once); };
-  window.addEventListener('pointerdown', once);
-  window.addEventListener('keydown', once);
-  window.addEventListener('touchstart', once);
+function stopBgMusic() {
+  try { sounds.bg.pause(); } catch (e) {}
 }
-_attachAudioUnlock();
 
 // Canvas UI helpers
 function rectContains(rx, ry, rw, rh, x, y) {
@@ -235,7 +174,7 @@ function createPlayer(){
   return {
     lane:1, // 0..2
     x: lanes[1],
-    y: H - 180,
+    y: H - 300,
     width: 88,
     height: 120,
     targetX: lanes[1],
@@ -849,13 +788,13 @@ function handleInput(){
 }
 
 function moveLeft(){
-  playSound("move"); // --- SOUND ADDITION ---
+  playSound("move", 0.5); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.max(0, p.lane - 1);
   p.targetX = lanes[p.lane];
 }
 function moveRight(){
-  playSound("move"); // --- SOUND ADDITION ---
+  playSound("move", 0.5); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.min(2, p.lane + 1);
   p.targetX = lanes[p.lane];
@@ -894,7 +833,6 @@ function setupTouch(){
 
 // start / restart
 function startGame(){
-  if (!audioUnlocked) unlockAudio();
   stopAllActiveSounds();
   stopBgMusic();
 
