@@ -675,16 +675,21 @@ function drawExplosion() {
   const textY = ey - 20 + Math.sin(elapsed / 200) * 8;
   
   ctx.globalAlpha = alpha;
-  ctx.shadowColor = 'rgba(255,255,200,0.95)';
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-  
-  ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+  ctx.shadowColor = 'rgb(244, 66, 7)';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
   ctx.font = 'bold 48px sans-serif';
   ctx.textAlign = 'center';
+
+  // Draw glow multiple times
+  for (let i = 0; i < 5; i++) {
+      ctx.fillText('BOOM!', ex, textY);
+  }
+
+  // Final crisp text
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
   ctx.fillText('BOOM!', ex, textY);
-  
   ctx.restore();
 }
 
