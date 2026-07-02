@@ -40,7 +40,7 @@ const spriteFiles = {
   red: "red_car.png",
   blue: "blue_car.png",
   green: "green_car.png",
-  gadda: "gadda.jpg" 
+  gadda: "gadda.png" 
 };
 
 for (const key in spriteFiles) {
