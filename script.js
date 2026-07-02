@@ -89,12 +89,19 @@ const sounds = {
 sounds.bg.loop = true;
 sounds.bg.volume = 0.8;
 
+sounds.move.volume = 0.1;//left right horn sound is reduced..
+
 const activeSounds = [];
 
 function playSound(sound) {
   if (!sounds[sound]) return;
   try {
-    const audio = sounds[sound].cloneNode();
+    //const audio = sounds[sound].cloneNode();
+    const original = sounds[sound];
+    const audio = original.cloneNode();
+
+    audio.volume = original.volume;      // <-- copy volume
+    audio.playbackRate = original.playbackRate;
     activeSounds.push(audio);
     const removeFromList = () => {
       const index = activeSounds.indexOf(audio);
