@@ -28,8 +28,6 @@ const trees = {};
 
 for (let i = 1; i <= 6; i++) {
   trees[`t${i}`] = new Image();
-  //trees[`t${i}`].onload = function(){ /* loaded */ };
-  //trees[`t${i}`].onerror = function(){};
   trees[`t${i}`].src = `./assets/trees/t${i}.png`;
 }
 
@@ -45,8 +43,6 @@ const spriteFiles = {
 
 for (const key in spriteFiles) {
   images[key] = new Image();
-  //images[key].onload = function(){ /* loaded */ };
-  //images[key].onerror = function(){};
   images[key].src = "./assets/" + spriteFiles[key]; // adjust path if needed
 }
 
@@ -76,8 +72,6 @@ if (images.mycar) {
 const controlImgs = {};
 ['up','down','left','right'].forEach(k => {
   controlImgs[k] = new Image();
-  //controlImgs[k].onload = function(){ /* loaded */ };
-  //controlImgs[k].onerror = function(){};
   controlImgs[k].src = `./assets/${k}.jpg`;
 });
 
@@ -825,14 +819,9 @@ function loop(){
   }
 }
 
-// basic mobile detection to show touch controls
-function setupTouch(){
-  // handled by canvas UI now; keep placeholder for compatibility
-}
-
-
 // start / restart
 function startGame(){
+  if(state.running) return;
   stopAllActiveSounds();
   stopBgMusic();
 
@@ -843,7 +832,6 @@ function startGame(){
   state.level = 1;
   state.speed = 3;
   state.spawnInterval = 90;
-  //state.obstacles = [];
   state.obstacles.length = 0;   // ✅ clear array fully
   state.trees.length = 0;
   roadOffset = 0;               // ✅ reset lane animation
@@ -851,18 +839,11 @@ function startGame(){
   state.spawnTimer = 0;
   state.player = createPlayer();
   state.player.alive = true;
-  //scoreEl.textContent = state.score;
-  //levelEl.textContent = state.level;
   // ensure UI labels
-  ui.startLabel = 'Start';
+  ui.startLabel = 'Running';
   ui.pauseLabel = 'Pause';
   ui.saveName = '';
 
-  // reset button text while running
-  //startBtn.textContent = "Start";
-
-  // --- SOUND ADDITION ---
-  //playSound("start");//because it was annoying 
   playBgMusic();
 }
 
@@ -987,7 +968,6 @@ preloadAssets().then(()=>{
   // small delay to let UI show 100%
   setTimeout(function(){
     // continue with original initialization
-    setupTouch();
     setupUI();
     fetchLeaders();
     // Do NOT auto-start the game; keep Start button behavior as before
