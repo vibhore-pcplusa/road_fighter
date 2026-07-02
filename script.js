@@ -28,8 +28,8 @@ const trees = {};
 
 for (let i = 1; i <= 6; i++) {
   trees[`t${i}`] = new Image();
-  trees[`t${i}`].onload = function(){ /* loaded */ };
-  trees[`t${i}`].onerror = function(){};
+  //trees[`t${i}`].onload = function(){ /* loaded */ };
+  //trees[`t${i}`].onerror = function(){};
   trees[`t${i}`].src = `./assets/trees/t${i}.png`;
 }
 
@@ -45,8 +45,8 @@ const spriteFiles = {
 
 for (const key in spriteFiles) {
   images[key] = new Image();
-  images[key].onload = function(){ /* loaded */ };
-  images[key].onerror = function(){};
+  //images[key].onload = function(){ /* loaded */ };
+  //images[key].onerror = function(){};
   images[key].src = "./assets/" + spriteFiles[key]; // adjust path if needed
 }
 
@@ -76,8 +76,8 @@ if (images.mycar) {
 const controlImgs = {};
 ['up','down','left','right'].forEach(k => {
   controlImgs[k] = new Image();
-  controlImgs[k].onload = function(){ /* loaded */ };
-  controlImgs[k].onerror = function(){};
+  //controlImgs[k].onload = function(){ /* loaded */ };
+  //controlImgs[k].onerror = function(){};
   controlImgs[k].src = `./assets/${k}.jpg`;
 });
 
@@ -138,10 +138,6 @@ function rectContains(rx, ry, rw, rh, x, y) {
 let roadOffset = 0;
 
 const W = canvas.width, H = canvas.height;
-//console.log(W);
-//console.log("vj");
-//console.log(H);
-//const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
 const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
 let state = {
   running: false,
@@ -359,14 +355,18 @@ function drawCanvasUI(){
   ctx.fillRect(x-8, y-12, btnW*2 + gap + 24, btnH + 24);
   ctx.globalAlpha = 1;
 
-  // Start
-  ctx.fillStyle = '#0a8';
-  ctx.fillRect(x, y, btnW, btnH);
-  ctx.fillStyle = '#000'; ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(ui.startLabel, x + btnW/2, y + 28);
+  
   // Pause
   ctx.fillStyle = '#ffcc00';
+  ctx.fillRect(x, y, btnW, btnH);
+  ctx.fillStyle = '#000'; 
+  ctx.font = '23px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(ui.pauseLabel, x + btnW/2, y + 28);
+
+  // Start
+  ctx.fillStyle = '#0a8';
   ctx.fillRect(x + btnW + gap, y, btnW, btnH);
-  ctx.fillStyle = '#000'; ctx.fillText(ui.pauseLabel, x + btnW + gap + btnW/2, y + 28);
+  ctx.fillStyle = '#000';  ctx.fillText(ui.startLabel, x + btnW/2 + btnW + gap, y + 28);
 
   // Draw panels if open
   if (ui.panels.save) drawSavePanel();
@@ -862,7 +862,7 @@ function startGame(){
   //startBtn.textContent = "Start";
 
   // --- SOUND ADDITION ---
-  playSound("start");
+  //playSound("start");//because it was annoying 
   playBgMusic();
 }
 
@@ -1185,8 +1185,9 @@ function handleCanvasPointer(x,y){
   // Start / Pause buttons (bottom-left)
   const btnW = 120, btnH = 44, gap = 12;
   const bx = 18, by = 48;
-  if (rectContains(bx,by,btnW,btnH,x,y)) { startGame(); return; }
-  if (rectContains(bx + btnW + gap,by,btnW,btnH,x,y)) { togglePause(); return; }
+  if (rectContains(bx,by,btnW,btnH,x,y)) { togglePause(); return; }
+  if (rectContains(bx + btnW + gap,by,btnW,btnH,x,y)) { startGame(); return; }
+  
   // Panel buttons (bottom-right)
   const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
   if (rectContains(px,py,pW,pH,x,y)) { ui.panels.save = !ui.panels.save; ui.panels.leaders = false; ui.panels.controls = false; return; }
@@ -1220,7 +1221,7 @@ function renderFullLeaders() {
 }
 
 function closeQuickMenu() {
-  console.log(1284);
+  //console.log(1284);
   ui.quickMenuOpen = false;
   const menu = document.getElementById('quickMenu');
   const toggle = document.getElementById('settingsToggle');
@@ -1232,7 +1233,7 @@ function closeQuickMenu() {
 }
 
 function toggleQuickMenu(force) {
-  console.log("toggling1296");
+  //console.log("toggling1296");
   const menu = document.getElementById('quickMenu');
   const toggle = document.getElementById('settingsToggle');
   if (!menu || !toggle) return;
@@ -1275,7 +1276,7 @@ function closePanel(id) {
 
 // Setup event bindings
 function setupUI() {
-  console.log("1339 running twice");
+  console.log("1278 setup ui");
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
 
@@ -1453,26 +1454,7 @@ function getCssScale(el) {
   } catch (e) {}
   return 1;
 }
-/*
-function syncCanvasSize(){
-  if (!canvas) return;
-  var rect = canvas.getBoundingClientRect();
-  var scale = window.devicePixelRatio || 1;
-  // account for any CSS transform scale so drawing resolution matches visual size
-  var cssScale = getCssScale(canvas) || 1;
-  var w = Math.max(480, Math.floor(rect.width * scale / cssScale));
-  var h = Math.max(640, Math.floor(rect.height * scale / cssScale));
-  canvas.width = w;
-  canvas.height = h;
-  // keep CSS sizing controlled by stylesheet
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-}
 
-window.addEventListener('resize', syncCanvasSize);
-window.addEventListener('orientationchange', syncCanvasSize);
-document.addEventListener('DOMContentLoaded', function(){ setTimeout(syncCanvasSize,50); });
-*/
 // Touch controls visibility: toggle class instead of inline styles
 function updateTouchVisibility() {
   var tc = document.getElementById('touchControls');
@@ -1484,9 +1466,6 @@ function updateTouchVisibility() {
 window.addEventListener('resize', updateTouchVisibility);
 window.addEventListener('orientationchange', updateTouchVisibility);
 updateTouchVisibility();
-
-
-
 
 function resizeCanvas() {
 
