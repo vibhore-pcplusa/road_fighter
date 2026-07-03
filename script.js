@@ -272,6 +272,29 @@ function drawRoundedRect(x, y, width, height, radius) {
   ctx.closePath();
 }
 
+function resetToIdleScreen(){
+  stopAllActiveSounds();
+  stopBgMusic();
+  state.running = false;
+  state.paused = false;
+  state.score = 0;
+  state.level = 1;
+  state.speed = 3;
+  state.speedTarget = 3;
+  state.spawnTimer = 0;
+  state.spawnInterval = 90;
+  state.obstacles.length = 0;
+  state.trees.length = 0;
+  state.frames = 0;
+  roadOffset = 0;
+  state.player = createPlayer();
+  state.player.alive = true;
+  state.explosion = null;
+  ui.startLabel = 'Start';
+  ui.pauseLabel = 'Pause';
+  ui.saveName = '';
+}
+
 function drawGameOverOverlay(){
   const panelW = Math.min(520, W - 40);
   const panelH = 320;
@@ -281,6 +304,8 @@ function drawGameOverOverlay(){
   const buttonH = 62;
   const buttonX = (W - buttonW) / 2;
   const buttonY = panelY + panelH - 96;
+  const closeX = panelX + panelW - 34;
+  const closeY = panelY + 24;
 
   ctx.save();
   ctx.fillStyle = "rgba(3, 8, 18, 0.76)";
@@ -321,6 +346,15 @@ function drawGameOverOverlay(){
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 28px sans-serif";
   ctx.fillText("Restart", W / 2, buttonY + 39);
+
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#0d1426";
+  ctx.font = "bold 20px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("X", closeX, closeY + 7);
   ctx.restore();
 
   drawExplosion();
@@ -1311,6 +1345,12 @@ function handleCanvasPointer(x,y){
     const buttonH = 62;
     const buttonX = (W - buttonW) / 2;
     const buttonY = panelY + panelH - 96;
+    const closeX = panelX + panelW - 34;
+    const closeY = panelY + 24;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+      resetToIdleScreen();
+      return;
+    }
     if (rectContains(buttonX, buttonY, buttonW, buttonH, x, y)) {
       startGame();
       return;
