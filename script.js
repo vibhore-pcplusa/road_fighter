@@ -174,7 +174,7 @@ function createPlayer(){
   return {
     lane:1, // 0..2
     x: lanes[1],
-    y: H - 300,
+    y: H - 400,
     width: 88,
     height: 120,
     targetX: lanes[1],
@@ -379,8 +379,9 @@ function drawCanvasUI(){
   positionHiddenSaveInput();
 
   // draw control images (up/down/left/right) near bottom-right
-  const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
-  const cx = W - 150; const cy = H - 150;
+  //const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
+  const size = 76;//fixed size
+  const cx = W - 170; const cy = H - 125;
   const positions = {
     up: { x: cx, y: cy - size },
     down: { x: cx, y: cy + size },
@@ -1162,7 +1163,8 @@ function handleCanvasPointer(x,y){
   if (ui._controlPos){
     for (const k of ['up','down','left','right']){
       const p = ui._controlPos[k];
-      const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
+      //const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
+      const size = 76;//fixed size
       if (Math.hypot(x - p.x, y - p.y) <= size){
         if (k === 'left') { moveLeft(); ui.holding = 'left'; ui.holdFrames = 0; }
         else if (k === 'right') { moveRight(); ui.holding = 'right'; ui.holdFrames = 0; }
