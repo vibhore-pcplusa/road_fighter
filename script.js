@@ -89,7 +89,7 @@ const sounds = {
 sounds.bg.loop = true;
 sounds.bg.volume = 0.8;
 
-sounds.move.volume = 0.1;//left right horn sound is reduced..
+sounds.move.volume = 0.2;//left right horn sound is reduced..
 
 const activeSounds = [];
 
@@ -131,10 +131,13 @@ function stopBgMusic() {
   try { sounds.bg.pause(); } catch (e) {}
 }
 
-// Canvas UI helpers
+// Canvas UI helpers : These helpers are used to join the ui design cords, with the button press cords. 
+// and ui design cords must be equal to button press cords. This is "THE BRIDGE"
 function rectContains(rx, ry, rw, rh, x, y) {
   return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
-}
+}// where rx=rectangle start x cordinate, ry=rectangle start y cords, rw=width of rectangle, rh=height of rectangle, 
+// x and y normal are the mouse pointer coordinates, where it is clicked. 
+
 
 let roadOffset = 0;
 
@@ -280,8 +283,8 @@ function render(){
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(0, 0, W, 38); // semi-transparent bar at top
 
-    ctx.fillStyle = "#fff";
-    ctx.font = "26px Arial";
+    ctx.fillStyle = "yellow";
+    ctx.font = "30px Arial";
     ctx.textAlign = "left";
     ctx.fillText("Level: " + state.level, 100, 30);
 
@@ -289,7 +292,7 @@ function render(){
     ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 30);
 
     ctx.textAlign = "right";
-    ctx.fillText("Score: " + state.score, W - 130, 30);
+    ctx.fillText("Score: " + state.score, W - 120, 30);
     ctx.restore();
     // HUD Header Dashboard Ends
 
