@@ -260,6 +260,10 @@ function drawRoad(){
 
 // main render
 function render(){
+  if (showRotateToPortrait) {
+    drawRotateToPortrait();
+    return;
+  }
   if (!assetsReady) {
     drawLoadingScreen(_assetsProgress || 0);
     return;
@@ -639,6 +643,7 @@ function drawExplosion() {
 
 // update game logic
 function update(){
+  if (showRotateToPortrait) return;
   if(!state.running || state.paused) return;
 
   state.frames++;
@@ -897,6 +902,15 @@ function getSpeedKmh() {
 let assetsReady = false;
 let _assetsProgress = 0;
 let _assetsLoadingStuck = false;
+let showRotateToPortrait = false;
+
+function updatePortraitState(){
+  showRotateToPortrait = window.innerWidth > window.innerHeight;
+  ui.toast = showRotateToPortrait ? 'Please rotate back to portrait mode' : null;
+}
+window.addEventListener('resize', updatePortraitState);
+window.addEventListener('orientationchange', updatePortraitState);
+updatePortraitState();
 
 function drawLoadingScreen(pct){
   ctx.clearRect(0,0,W,H);
@@ -915,6 +929,31 @@ function drawLoadingScreen(pct){
   ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, bh);
   ctx.fillStyle = '#0a8'; ctx.fillRect(bx, by, Math.round(bw * pct/100), bh);
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+}
+
+function drawRotateToPortrait(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 42px sans-serif';
+  ctx.fillText('Rotate to Portrait', W/2, H/2 - 50);
+  ctx.font = '20px sans-serif';
+  const lines = [
+    'This game works best in portrait mode.',
+    'Please rotate your device back to portrait.'
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], W/2, H/2 + i * 28 + 10);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  const boxW = W * 0.85;
+  const boxH = 220;
+  ctx.fillRect((W - boxW)/2, H/2 - 110, boxW, boxH);
+  ctx.strokeStyle = '#0af';
+  ctx.lineWidth = 3;
+  ctx.strokeRect((W - boxW)/2, H/2 - 110, boxW, boxH);
 }
 
 function preloadAssets(options){
