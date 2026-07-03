@@ -147,6 +147,7 @@ let state = {
   score: 0,
   level: 1,
   speed: 3,
+  speedTarget: 3,
   spawnTimer: 0,
   spawnInterval: 90, // frames
   obstacles: [],
@@ -163,6 +164,14 @@ state.explosion = null;
 // UI hold state for pointer presses
 ui.holding = null;
 ui.holdFrames = 0;
+
+function clampSpeed(value){
+  return Math.min(state.maxSpeed, Math.max(state.minSpeed, value));
+}
+
+function setSpeedTarget(value){
+  state.speedTarget = clampSpeed(value);
+}
 
 // Player definition
 function createPlayer(){
@@ -646,15 +655,22 @@ function update(){
   if (ui.holding) {
     ui.holdFrames++;
     if (ui.holding === 'accelerate') {
-      // accelerate smoothly while held
-      state.speed = Math.min(state.maxSpeed, state.speed + 0.08);
+      setSpeedTarget(state.speedTarget + 0.08);
     } else if (ui.holding === 'brake') {
-      state.speed = Math.max(state.minSpeed, state.speed - 0.12);
+      setSpeedTarget(state.speedTarget - 0.12);
     } else if (ui.holding === 'left' && ui.holdFrames % 12 === 0) {
       moveLeft();
     } else if (ui.holding === 'right' && ui.holdFrames % 12 === 0) {
       moveRight();
     }
+  } else {
+    // natural friction so the car slows down smoothly when no input is pressed
+    setSpeedTarget(Math.max(state.minSpeed, state.speedTarget - 0.015));
+  }
+
+  state.speed += (state.speedTarget - state.speed) * 0.12;
+  if (Math.abs(state.speedTarget - state.speed) < 0.001) {
+    state.speed = state.speedTarget;
   }
   // spawn obstacles
   state.spawnTimer++;
@@ -765,19 +781,19 @@ window.addEventListener('keydown', e => {
     case "a":
       moveLeft();
       break;
-    case "ArrowRight":
-    case "d":
-      moveRight();
-      break;
     case "ArrowUp":
     case "w":
-      state.speed = Math.min(state.maxSpeed, state.speed + 0.4);
+      setSpeedTarget(state.speedTarget + 0.4);
       playSound("accelerate"); // --- SOUND ADDITION ---
       break;
     case "ArrowDown":
     case "s":
-      state.speed = Math.max(state.minSpeed, state.speed - 0.4);
+      setSpeedTarget(state.speedTarget - 0.4);
       playSound("brake"); // --- SOUND ADDITION ---
+      break;
+    case "ArrowRight":
+    case "d":
+      moveRight();
       break;
   }
 });
@@ -788,8 +804,8 @@ window.addEventListener('keyup', e => {
 
 function handleInput(){
   if(!state.running) return;
-  if(keys["arrowup"] || keys["w"]) state.speed = Math.min(state.maxSpeed, state.speed + 0.2);
-  if(keys["arrowdown"] || keys["s"]) state.speed = Math.max(state.minSpeed, state.speed - 0.2);
+  if(keys["arrowup"] || keys["w"]) setSpeedTarget(state.speedTarget + 0.2);
+  if(keys["arrowdown"] || keys["s"]) setSpeedTarget(state.speedTarget - 0.2);
 }
 
 function moveLeft(){
@@ -842,6 +858,7 @@ function startGame(){
   state.score = 0;
   state.level = 1;
   state.speed = 3;
+  state.speedTarget = 3;
   state.spawnInterval = 90;
   state.obstacles.length = 0;   // ✅ clear array fully
   state.trees.length = 0;
@@ -1202,8 +1219,8 @@ function handleCanvasPointer(x,y){
       if (Math.hypot(x - p.x, y - p.y) <= size){
         if (k === 'left') { moveLeft(); ui.holding = 'left'; ui.holdFrames = 0; }
         else if (k === 'right') { moveRight(); ui.holding = 'right'; ui.holdFrames = 0; }
-        else if (k === 'up') { state.speed = Math.min(state.maxSpeed, state.speed + 1); ui.holding = 'accelerate'; ui.holdFrames = 0; }
-        else if (k === 'down') { state.speed = Math.max(state.minSpeed, state.speed - 1); ui.holding = 'brake'; ui.holdFrames = 0; }
+        else if (k === 'up') { setSpeedTarget(state.speedTarget + 1); ui.holding = 'accelerate'; ui.holdFrames = 0; }
+        else if (k === 'down') { setSpeedTarget(state.speedTarget - 1); ui.holding = 'brake'; ui.holdFrames = 0; }
         return;
       }
     }
