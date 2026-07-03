@@ -262,6 +262,71 @@ function drawRoad(){
   ctx.setLineDash([]);
 }
 
+function drawRoundedRect(x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+function drawGameOverOverlay(){
+  const panelW = Math.min(520, W - 40);
+  const panelH = 320;
+  const panelX = (W - panelW) / 2;
+  const panelY = (H - panelH) / 2;
+  const buttonW = 220;
+  const buttonH = 62;
+  const buttonX = (W - buttonW) / 2;
+  const buttonY = panelY + panelH - 96;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(3, 8, 18, 0.76)";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+  panelGradient.addColorStop(0, "#223255");
+  panelGradient.addColorStop(1, "#0d1426");
+  ctx.fillStyle = panelGradient;
+  ctx.strokeStyle = "#ffcf5c";
+  ctx.lineWidth = 3;
+  drawRoundedRect(panelX, panelY, panelW, panelH, 24);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 54px sans-serif";
+  ctx.fillText("GAME OVER", W / 2, panelY + 95);
+
+  ctx.fillStyle = "#ffd166";
+  ctx.font = "30px sans-serif";
+  ctx.fillText("Final Score: " + state.score, W / 2, panelY + 150);
+
+  ctx.fillStyle = "#dbe7ff";
+  ctx.font = "22px sans-serif";
+  ctx.fillText("Tap the button below to race again", W / 2, panelY + 195);
+
+  ctx.fillStyle = "#ff5d73";
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  drawRoundedRect(buttonX, buttonY, buttonW, buttonH, 18);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillText("Restart", W / 2, buttonY + 39);
+  ctx.restore();
+
+  drawExplosion();
+  ui.startLabel = 'Restart';
+}
+
 // main render
 function render(){
   if (showRotateToPortrait) {
@@ -286,23 +351,6 @@ function render(){
         );
     }
 }
-    // HUD Header Dashboard Starts
-    ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(0, 0, W, 38); // semi-transparent bar at top
-
-    ctx.fillStyle = "yellow";
-    ctx.font = "30px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText("Level: " + state.level, 100, 30);
-
-    ctx.textAlign = "center";
-    ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 30);
-
-    ctx.textAlign = "right";
-    ctx.fillText("Score: " + state.score, W - 120, 30);
-    ctx.restore();
-    // HUD Header Dashboard Ends
 
   // draw obstacles
   for(const o of state.obstacles){
@@ -351,6 +399,24 @@ function render(){
   ctx.fillRect(6,p.height-12,12,8);
   ctx.fillRect(p.width-18,p.height-12,12,8);
   ctx.restore();
+
+  // HUD Header Dashboard Starts
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0, 0, W, 38);
+
+  ctx.fillStyle = "yellow";
+  ctx.font = "30px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("Level: " + state.level, 100, 30);
+
+  ctx.textAlign = "center";
+  ctx.fillText("Speed: " + getSpeedKmh() + " km/h", W/2, 30);
+
+  ctx.textAlign = "right";
+  ctx.fillText("Score: " + state.score, W - 80, 30);
+  ctx.restore();
+  // HUD Header Dashboard Ends
 
   // draw in-canvas UI controls
   drawCanvasUI();
@@ -828,21 +894,7 @@ function loop(){
   update();
   render();
   if(!state.running && !state.player.alive){
-    // show GAME OVER overlay
-    ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fillRect(0,0,W,H);
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.font = "48px sans-serif";
-    ctx.fillText("GAME OVER", W/2, H/2 - 10);
-    ctx.font = "32px sans-serif";
-    ctx.fillText("Score: " + state.score, W/2, H/2 + 40);
-    ctx.restore();
-    // draw explosion on top of overlay
-    drawExplosion();
-    // 👇 change Start button text
-    ui.startLabel = 'Restart';
+    drawGameOverOverlay();
   }
 }
 
@@ -1210,6 +1262,21 @@ function activateSaveNameInput(){
 
 // Handle pointer interactions on canvas
 function handleCanvasPointer(x,y){
+  if (!state.running && !state.player.alive) {
+    const panelW = Math.min(520, W - 40);
+    const panelH = 320;
+    const panelX = (W - panelW) / 2;
+    const panelY = (H - panelH) / 2;
+    const buttonW = 220;
+    const buttonH = 62;
+    const buttonX = (W - buttonW) / 2;
+    const buttonY = panelY + panelH - 96;
+    if (rectContains(buttonX, buttonY, buttonW, buttonH, x, y)) {
+      startGame();
+      return;
+    }
+  }
+
   // check control images first
   if (ui._controlPos){
     for (const k of ['up','down','left','right']){
