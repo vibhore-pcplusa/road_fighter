@@ -524,6 +524,19 @@ function drawSavePanel(){
   ctx.font = '24px sans-serif';
   ctx.fillText(ui.saveName || 'Tap to type your name', x + 34, inputY + 35);
 
+  const closeX = x + w - 40;
+  const closeY = y + 16;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath();
+  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#0f6f7a';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('X', closeX, closeY + 8);
+  ctx.restore();
+
   const buttonW = 140, buttonH = 50;
   const btnX = x + w - buttonW - 26;
   const btnY = y + h - buttonH - 22;
@@ -576,6 +589,19 @@ function drawLeadersPanel(){
   const list = state.leaders && state.leaders.length ? state.leaders : [];
   ctx.font = '27px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  const closeX = x + w - 40;
+  const closeY = y + 16;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath();
+  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#026478';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('X', closeX, closeY + 8);
+  ctx.restore();
+
   if (!list.length) {
     ctx.fillText('No scores yet. Play to save your best run!', x + 26, y + 100);
   } else {
@@ -651,6 +677,20 @@ function drawControlsPanel(){
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.font = '26px sans-serif';
   for (let i=0;i<lines.length;i++) ctx.fillText(lines[i], x + 26, y + 90 + i*40);
+
+  const closeX = x + w - 40;
+  const closeY = y + 16;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath();
+  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#0f6f7a';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('X', closeX, closeY + 8);
+  ctx.restore();
+
   ctx.restore();
 }
 
@@ -1307,12 +1347,35 @@ function handleCanvasPointer(x,y){
   // If save panel open, detect save button inside it
   if (ui.panels.save) {
     const w = 460, h = 240; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+      ui.panels.save = false; ui.inputActive = false; return;
+    }
     // Save button rect
     if (rectContains(sx + w - 140, sy + h - 58, 140, 50, x, y)) {
       saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
     }
     // name input area: toggle focus and start typing
     if (rectContains(sx + 24, sy + 98, w - 48, 52, x, y)) { activateSaveNameInput(); return; }
+  }
+
+  if (ui.panels.leaders) {
+    const w = 560, h = 480; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+      ui.panels.leaders = false; ui.inputActive = false; return;
+    }
+  }
+
+  if (ui.panels.controls) {
+    const w = 520, h = 340; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+      ui.panels.controls = false; ui.inputActive = false; return;
+    }
   }
 
   // close panels when tapping outside
