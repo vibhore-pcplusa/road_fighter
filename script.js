@@ -81,9 +81,7 @@ const sounds = {
   brake: new Audio("assets/sounds/brake.mp3"),
   move: new Audio("assets/sounds/move.mp3"),
   crash: new Audio("assets/sounds/crash.mp3"),
-  start: new Audio("assets/sounds/start.mp3"),
   pause: new Audio("assets/sounds/pause.mp3"),
-  /*resume: new Audio("assets/sounds/resume.mp3"),*/
   bg: new Audio("assets/sounds/bg_music.mp3")  // background music
 };
 sounds.bg.loop = true;
@@ -153,11 +151,10 @@ let state = {
   spawnInterval: 90, // frames
   obstacles: [],
   trees:[],
-  /*player: null,*/
   player: createPlayer(), 
   frames: 0,
-  minSpeed: 2,   // 👈 NEW
-  maxSpeed: 12   // 👈 NEW
+  minSpeed: 2,  
+  maxSpeed: 12  
 };
 
 // explosion state (shown on collision)
@@ -166,8 +163,6 @@ state.explosion = null;
 // UI hold state for pointer presses
 ui.holding = null;
 ui.holdFrames = 0;
-
-
 
 // Player definition
 function createPlayer(){
