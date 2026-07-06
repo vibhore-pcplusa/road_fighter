@@ -23,7 +23,9 @@ const ui = {
   hiddenInput: null,
   quickMenuOpen: true,
   showHighScorePrompt: false,
-  highScoreChecked: false
+  highScoreChecked: false,
+  cursorVisible: true,
+  lastCursorToggle: Date.now()
 };
 // ---load trees---
 const trees = {};
@@ -386,6 +388,25 @@ function drawGameOverOverlay(){
     const displayText = ui.saveName || 'Tap here to type your name';
     ctx.fillText(displayText, promptX + 14, promptY + 38);
 
+    // Draw blinking cursor
+    if (ui.inputActive) {
+      const now = Date.now();
+      if (now - ui.lastCursorToggle > 500) {
+        ui.cursorVisible = !ui.cursorVisible;
+        ui.lastCursorToggle = now;
+      }
+      if (ui.cursorVisible && ui.saveName) {
+        const textWidth = ctx.measureText(ui.saveName).width;
+        const cursorX = promptX + 14 + textWidth + 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cursorX, promptY + 16);
+        ctx.lineTo(cursorX, promptY + 48);
+        ctx.stroke();
+      }
+    }
+
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(43,190,120,0.96)';
     drawRoundedRect(saveX, promptBtnY, 160, 52, 18);
@@ -670,7 +691,7 @@ function drawSavePanel(){
 }
 
 function drawLeadersPanel(){
-  const w = 560, h = 480; const x = (W - w)/2, y = (H - h)/2;
+  const w = 560, h = 550; const x = (W - w)/2, y = (H - h)/2;
   ctx.save();
   ctx.fillStyle = 'rgba(22, 205, 220, 0.95)';
   ctx.beginPath();
@@ -691,7 +712,7 @@ function drawLeadersPanel(){
   ctx.fillStyle = '#fff';
   ctx.font = '32px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('Top Scores (IST Time)', x + 26, y + 48);
+  ctx.fillText('Top Scores (IST)', x + 26, y + 48);
 
   const list = state.leaders && state.leaders.length ? state.leaders : [];
   ctx.font = '27px sans-serif';
