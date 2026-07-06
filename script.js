@@ -323,7 +323,7 @@ function prepareGameOverState(){
 
 function drawGameOverOverlay(){
   const panelW = Math.min(520, W - 40);
-  const panelH = 320;
+  const panelH = 380;
   const panelX = (W - panelW) / 2;
   const panelY = (H - panelH) / 2;
   const buttonW = 220;
@@ -361,18 +361,18 @@ function drawGameOverOverlay(){
   if (ui.showHighScorePrompt) {
     const promptX = panelX + 24;
     const promptWidth = panelW - 48;
-    const promptY = panelY + 176;
+    const promptY = panelY + 210;
     const promptHeight = 64;
     const saveX = W / 2 - 160 - 10;
     const cancelX = W / 2 + 10;
-    const promptBtnY = panelY + panelH - 92;
+    const promptBtnY = panelY + panelH - 80;
 
     ctx.fillStyle = '#ffd166';
-    ctx.font = '24px sans-serif';
-    ctx.fillText('Congratulations! You made a new High Score', W / 2, panelY + 170);
+    ctx.font = '28px sans-serif';
+    ctx.fillText('Congratulations! 🎉 New High Score', W / 2, panelY + 180);
     ctx.fillStyle = '#dbe7ff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText('Please enter your name and save it now', W / 2, panelY + 196);
+    ctx.font = '22px sans-serif';
+    //ctx.fillText('Please enter your name', W / 2, panelY + 212);
 
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fillRect(promptX, promptY, promptWidth, promptHeight);
@@ -1431,7 +1431,7 @@ function activateSaveNameInput(){
 function handleCanvasPointer(x,y){
   if (!state.running && !state.player.alive) {
     const panelW = Math.min(520, W - 40);
-    const panelH = 320;
+    const panelH = 380;
     const panelX = (W - panelW) / 2;
     const panelY = (H - panelH) / 2;
     const buttonW = 220;
