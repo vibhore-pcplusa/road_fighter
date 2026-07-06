@@ -21,7 +21,7 @@ const ui = {
   saveMessage: '',
   inputActive: false,
   hiddenInput: null,
-  quickMenuOpen: true,
+  quickMenuOpen: false,
   showHighScorePrompt: false,
   highScoreChecked: false,
   cursorVisible: true,
@@ -174,6 +174,7 @@ function clampSpeed(value){
 }
 
 function setSpeedTarget(value){
+  if (!state.running || state.paused || state.gameOver) return;
   state.speedTarget = clampSpeed(value);
 }
 
@@ -967,12 +968,14 @@ function handleInput(){
 }
 
 function moveLeft(){
+  if (!state.running || state.paused || state.gameOver) return;
   playSound("move", 0.5); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.max(0, p.lane - 1);
   p.targetX = lanes[p.lane];
 }
 function moveRight(){
+  if (!state.running || state.paused || state.gameOver) return;
   playSound("move", 0.5); // --- SOUND ADDITION ---
   const p = state.player;
   p.lane = Math.min(2, p.lane + 1);
