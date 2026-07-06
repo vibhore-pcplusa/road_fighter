@@ -575,7 +575,6 @@ function drawCanvasUI(){
   ctx.fillStyle = '#000';  ctx.fillText(ui.startLabel, x + btnW/2 + btnW + gap, y + 28);
 
   // Draw panels if open
-  if (ui.panels.save) drawSavePanel();
   if (ui.panels.leaders) drawLeadersPanel();
   if (ui.panels.controls) drawControlsPanel();
   positionHiddenSaveInput();
@@ -613,82 +612,6 @@ function drawCanvasUI(){
   ctx.restore();
 }
 
-function drawSavePanel(){
-  const w = 460, h = 240; const x = (W - w)/2, y = (H - h)/2;
-  ctx.save();
-  ctx.fillStyle = 'rgba(24, 220, 210, 0.95)';
-  ctx.beginPath();
-  ctx.moveTo(x + 18, y);
-  ctx.lineTo(x + w - 18, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + 18);
-  ctx.lineTo(x + w, y + h - 18);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - 18, y + h);
-  ctx.lineTo(x + 18, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - 18);
-  ctx.lineTo(x, y + 18);
-  ctx.quadraticCurveTo(x, y, x + 18, y);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = 'rgba(0, 120, 140, 0.92)';
-  ctx.fillRect(x + 16, y + 16, w - 32, 52);
-  ctx.fillStyle = '#fff';
-  ctx.font = '32px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('Save Score', x + 24, y + 48);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.font = '24px sans-serif';
-  ctx.fillText('Enter your name to save your score', x + 24, y + 88);
-
-  const inputY = y + 98;
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(x + 24, inputY, w - 48, 52);
-  ctx.strokeStyle = 'rgba(255,255,255,0.24)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + 24, inputY, w - 48, 52);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.98)';
-  ctx.font = '24px sans-serif';
-  ctx.fillText(ui.saveName || 'Tap to type your name', x + 34, inputY + 35);
-
-  const closeX = x + w - 40;
-  const closeY = y + 16;
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.beginPath();
-  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#0f6f7a';
-  ctx.font = 'bold 22px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('X', closeX, closeY + 8);
-  ctx.restore();
-
-  const buttonW = 140, buttonH = 50;
-  const btnX = x + w - buttonW - 26;
-  const btnY = y + h - buttonH - 22;
-  ctx.fillStyle = 'rgba(10,70,90,0.95)';
-  ctx.beginPath();
-  ctx.moveTo(btnX + 14, btnY);
-  ctx.lineTo(btnX + buttonW - 14, btnY);
-  ctx.quadraticCurveTo(btnX + buttonW, btnY, btnX + buttonW, btnY + 14);
-  ctx.lineTo(btnX + buttonW, btnY + buttonH - 14);
-  ctx.quadraticCurveTo(btnX + buttonW, btnY + buttonH, btnX + buttonW - 14, btnY + buttonH);
-  ctx.lineTo(btnX + 14, btnY + buttonH);
-  ctx.quadraticCurveTo(btnX, btnY + buttonH, btnX, btnY + buttonH - 14);
-  ctx.lineTo(btnX, btnY + 14);
-  ctx.quadraticCurveTo(btnX, btnY, btnX + 14, btnY);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = '#fff';
-  ctx.font = '24px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Save', btnX + buttonW / 2, btnY + 34);
-
-  ctx.restore();
-}
 
 function drawLeadersPanel(){
   const w = 560, h = 550; const x = (W - w)/2, y = (H - h)/2;
@@ -1354,6 +1277,7 @@ function ensureHiddenTextInput(){
   if (ui.hiddenInput) return ui.hiddenInput;
   const input = document.createElement('input');
   input.type = 'text';
+  input.name = 'vjname';
   input.maxLength = 13;
   input.autocapitalize = 'words';
   input.autocomplete = 'off';
@@ -1600,11 +1524,11 @@ function toggleQuickMenu(force) {
 }
 
 function openQuickPanel(panelName) {
-  ui.panels.save = false;
+  //ui.panels.save = false;
   ui.panels.leaders = false;
   ui.panels.controls = false;
 
-  if (panelName === 'save') ui.panels.save = true;
+  //if (panelName === 'save') ui.panels.save = true;
   if (panelName === 'leaders') ui.panels.leaders = true;
   if (panelName === 'controls') ui.panels.controls = true;
 
@@ -1616,7 +1540,7 @@ function openPanel(id) {
   var el = $id(id);
   if (!el) return;
   // close others
-  ['savePanel','leadersPanel','controlsPanel'].forEach(function(pid){ if(pid!==id){ var p=$id(pid); if(p) p.style.display='none'; } });
+  ['leadersPanel','controlsPanel'].forEach(function(pid){ if(pid!==id){ var p=$id(pid); if(p) p.style.display='none'; } });
   el.style.display = 'block';
   el.setAttribute('aria-hidden','false');
   // populate when opened
