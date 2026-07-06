@@ -664,7 +664,7 @@ function drawLeadersPanel(){
     ctx.font = '26px sans-serif';
     ctx.fillText('Rank', x + 30, rowY - 14);
     ctx.fillText('Player', x + 110, rowY - 14);
-    ctx.fillText('Score', x + 260, rowY - 14);
+    ctx.fillText('Score', x + 280, rowY - 14);
     ctx.fillText('Date', x + 390, rowY - 14);
 
     for (let i = 0; i < maxRows; i++) {
@@ -685,7 +685,7 @@ function drawLeadersPanel(){
       const istTime = new Intl.DateTimeFormat('en-IN', options).format(date);
       ctx.fillText((i + 1) + '.', x + 30, rowTop + 18);
       ctx.fillText(it.name, x + 110, rowTop + 18);
-      ctx.fillText(it.score.toString(), x + 260, rowTop + 18);
+      ctx.fillText(it.score.toString(), x + 290, rowTop + 18);
       ctx.fillText(istTime, x + 390, rowTop + 18);
     }
   }
@@ -749,12 +749,12 @@ function drawControlsPanel(){
 function drawExplosion() {
   if (!state.explosion) return;
   const elapsed = Date.now() - state.explosion.start;
-  if (elapsed >= 3000) {
+  if (elapsed >= 10000) {
     state.explosion = null;
     return;
   }
   
-  const progress = elapsed / 3000;
+  const progress = elapsed / 10000;
   const size = 80 + progress * 60;
   const alpha = 1 - progress;
   const ex = state.explosion.x || W/2;
