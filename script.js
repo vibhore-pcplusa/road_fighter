@@ -21,7 +21,9 @@ const ui = {
   saveMessage: '',
   inputActive: false,
   hiddenInput: null,
-  quickMenuOpen: true
+  quickMenuOpen: true,
+  showHighScorePrompt: false,
+  highScoreChecked: false
 };
 // ---load trees---
 const trees = {};
@@ -293,6 +295,30 @@ function resetToIdleScreen(){
   ui.startLabel = 'Start';
   ui.pauseLabel = 'Pause';
   ui.saveName = '';
+  ui.showHighScorePrompt = false;
+  ui.highScoreChecked = false;
+}
+
+function evaluateHighScore(){
+  const list = state.leaders || [];
+  if (list.length < 10) {
+    ui.showHighScorePrompt = true;
+  } else {
+    const lowest = list[list.length - 1];
+    ui.showHighScorePrompt = state.score > (lowest.score || 0);
+  }
+  ui.highScoreChecked = true;
+  if (ui.showHighScorePrompt) {
+    ui.saveName = '';
+    ui.inputActive = false;
+  }
+}
+
+function prepareGameOverState(){
+  ui.showHighScorePrompt = false;
+  ui.highScoreChecked = false;
+  evaluateHighScore();
+  fetchLeaders().then(() => evaluateHighScore()).catch(()=>{});
 }
 
 function drawGameOverOverlay(){
@@ -332,20 +358,67 @@ function drawGameOverOverlay(){
   ctx.font = "30px sans-serif";
   ctx.fillText("Final Score: " + state.score, W / 2, panelY + 150);
 
-  ctx.fillStyle = "#dbe7ff";
-  ctx.font = "22px sans-serif";
-  ctx.fillText("Tap the button below to race again", W / 2, panelY + 195);
+  if (ui.showHighScorePrompt) {
+    const promptX = panelX + 24;
+    const promptWidth = panelW - 48;
+    const promptY = panelY + 176;
+    const promptHeight = 64;
+    const saveX = W / 2 - 160 - 10;
+    const cancelX = W / 2 + 10;
+    const promptBtnY = panelY + panelH - 92;
 
-  ctx.fillStyle = "#ff5d73";
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  drawRoundedRect(buttonX, buttonY, buttonW, buttonH, 18);
-  ctx.fill();
-  ctx.stroke();
+    ctx.fillStyle = '#ffd166';
+    ctx.font = '24px sans-serif';
+    ctx.fillText('Congratulations! You made a new High Score', W / 2, panelY + 170);
+    ctx.fillStyle = '#dbe7ff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText('Please enter your name and save it now', W / 2, panelY + 196);
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 28px sans-serif";
-  ctx.fillText("Restart", W / 2, buttonY + 39);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(promptX, promptY, promptWidth, promptHeight);
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(promptX, promptY, promptWidth, promptHeight);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'left';
+    const displayText = ui.saveName || 'Tap here to type your name';
+    ctx.fillText(displayText, promptX + 14, promptY + 38);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(43,190,120,0.96)';
+    drawRoundedRect(saveX, promptBtnY, 160, 52, 18);
+    ctx.fill();
+    ctx.strokeStyle = '#eff8ff';
+    ctx.stroke();
+    ctx.fillStyle = '#0d1426';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText('Save', saveX + 80, promptBtnY + 34);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    drawRoundedRect(cancelX, promptBtnY, 160, 52, 18);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Cancel', cancelX + 80, promptBtnY + 34);
+  } else {
+    ctx.fillStyle = "#dbe7ff";
+    ctx.font = "22px sans-serif";
+    ctx.fillText("Tap the button below to race again", W / 2, panelY + 195);
+
+    ctx.fillStyle = "#ff5d73";
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    drawRoundedRect(buttonX, buttonY, buttonW, buttonH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillText("Restart", W / 2, buttonY + 39);
+  }
 
   ctx.fillStyle = "#fff";
   ctx.beginPath();
@@ -875,6 +948,7 @@ function update(){
       // --- SOUND ADDITION ---
       playSound("crash");
       stopBgMusic();
+      prepareGameOverState();
       break;
     }
   }
@@ -1259,7 +1333,7 @@ function ensureHiddenTextInput(){
   if (ui.hiddenInput) return ui.hiddenInput;
   const input = document.createElement('input');
   input.type = 'text';
-  input.maxLength = 20;
+  input.maxLength = 13;
   input.autocapitalize = 'words';
   input.autocomplete = 'off';
   input.spellcheck = false;
@@ -1275,7 +1349,13 @@ function ensureHiddenTextInput(){
   input.style.padding = '0';
   input.style.margin = '0';
   input.addEventListener('input', function(){
-    ui.saveName = input.value;
+    ui.saveName = input.value.trimStart();
+  });
+  input.addEventListener('focus', function(){
+    if (ui.saveName === '' || ui.saveName === 'Tap here to type your name' || ui.saveName === 'Tap to type your name') {
+      ui.saveName = '';
+      input.value = '';
+    }
   });
   input.addEventListener('keydown', function(e){
     if (e.key === 'Enter') {
@@ -1300,21 +1380,34 @@ function ensureHiddenTextInput(){
 
 function positionHiddenSaveInput(){
   const input = ensureHiddenTextInput();
-  if (!ui.panels.save || !ui.inputActive) {
+  if ((!ui.panels.save && !ui.showHighScorePrompt) || !ui.inputActive) {
     input.style.pointerEvents = 'none';
     return;
   }
   const rect = canvas.getBoundingClientRect();
   const scaleX = rect.width / canvas.width;
   const scaleY = rect.height / canvas.height;
-  const w = 460, h = 240;
-  const sx = (canvas.width - w) / 2;
-  const sy = (canvas.height - h) / 2;
-  const inputX = rect.left + (sx + 24) * scaleX;
-  const inputY = rect.top + (sy + 98) * scaleY;
+  let inputX, inputY, width;
+
+  if (ui.panels.save) {
+    const w = 460;
+    const sx = (canvas.width - w) / 2;
+    const sy = (canvas.height - 240) / 2;
+    inputX = rect.left + (sx + 24) * scaleX;
+    inputY = rect.top + (sy + 98) * scaleY;
+    width = (w - 48) * scaleX;
+  } else {
+    const w = Math.min(520, canvas.width - 40);
+    const sx = (canvas.width - w) / 2;
+    const sy = (canvas.height - 320) / 2;
+    inputX = rect.left + (sx + 24) * scaleX;
+    inputY = rect.top + (sy + 180) * scaleY;
+    width = (w - 48) * scaleX;
+  }
+
   input.style.left = inputX + 'px';
   input.style.top = inputY + 'px';
-  input.style.width = (w - 48) * scaleX + 'px';
+  input.style.width = width + 'px';
   input.style.height = 52 * scaleY + 'px';
   input.style.pointerEvents = 'auto';
 }
@@ -1347,9 +1440,37 @@ function handleCanvasPointer(x,y){
     const buttonY = panelY + panelH - 96;
     const closeX = panelX + panelW - 34;
     const closeY = panelY + 24;
+    const promptX = panelX + 24;
+    const promptWidth = panelW - 48;
+    const promptY = panelY + 180;
+    const saveX = W / 2 - 160 - 10;
+    const cancelX = W / 2 + 10;
+    const promptBtnY = panelY + panelH - 92;
     if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
       resetToIdleScreen();
       return;
+    }
+    if (ui.showHighScorePrompt) {
+        if (rectContains(promptX, promptY, promptWidth, 54, x, y)) {
+        activateSaveNameInput();
+        return;
+      }
+      if (rectContains(saveX, promptBtnY, 160, 52, x, y)) {
+        if (!ui.saveName || !ui.saveName.trim()) {
+          ui.toast = 'Name cannot be blank';
+          setTimeout(()=> ui.toast = null, 1400);
+          return;
+        }
+        saveScoreByName(ui.saveName || 'Player');
+        ui.showHighScorePrompt = false;
+        ui.inputActive = false;
+        return;
+      }
+      if (rectContains(cancelX, promptBtnY, 160, 52, x, y)) {
+        ui.showHighScorePrompt = false;
+        ui.inputActive = false;
+        return;
+      }
     }
     if (rectContains(buttonX, buttonY, buttonW, buttonH, x, y)) {
       startGame();

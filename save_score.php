@@ -40,7 +40,12 @@ if (!$input || !isset($input['name']) || !isset($input['score'])) {
 }
 
 $name = preg_replace('/[^a-zA-Z0-9_\-\s]/', '', $input['name']); // allow only safe characters
-$name = substr(trim($name), 0, 50);
+$name = trim($name);
+$name = substr($name, 0, 13);
+if ($name === '') {
+    echo json_encode(['success' => false, 'error' => 'invalid name']);
+    exit;
+}
 $score = (int)$input['score'];
 
 try {
