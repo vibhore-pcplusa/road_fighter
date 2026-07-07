@@ -384,7 +384,7 @@ function drawGameOverOverlay(){
     ctx.strokeRect(promptX, promptY, promptWidth, promptHeight);
 
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.font = '22px sans-serif';
+    ctx.font = '26px sans-serif';
     ctx.textAlign = 'left';
     const displayText = ui.saveName || 'Tap here to type your name';
     ctx.fillText(displayText, promptX + 14, promptY + 38);
@@ -427,7 +427,7 @@ function drawGameOverOverlay(){
     ctx.fillText('Cancel', cancelX + 80, promptBtnY + 34);
   } else {
     ctx.fillStyle = "#dbe7ff";
-    ctx.font = "22px sans-serif";
+    ctx.font = "28px sans-serif";
     ctx.fillText("Tap the button below to race again", W / 2, panelY + 195);
 
     ctx.fillStyle = "#ff5d73";
@@ -1466,7 +1466,7 @@ function handleCanvasPointer(x,y){
       saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
     }
     // name input area: toggle focus and start typing
-    if (rectContains(sx + 24, sy + 98, w - 48, 52, x, y)) { activateSaveNameInput(); return; }
+    if (rectContains(sx + 24, sy + 156, w - 28, 59, x, y)) { activateSaveNameInput(); return; }
   }
 
   if (ui.panels.leaders) {
