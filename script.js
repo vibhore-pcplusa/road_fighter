@@ -1390,16 +1390,17 @@ function handleCanvasPointer(x,y){
     const closeY = panelY + 24;
     const promptX = panelX + 24;
     const promptWidth = panelW - 48;
-    const promptY = panelY + 180;
+    const promptY = panelY + 210;
+    const promptHeight = 64;
     const saveX = W / 2 - 160 - 10;
     const cancelX = W / 2 + 10;
-    const promptBtnY = panelY + panelH - 92;
+    const promptBtnY = panelY + panelH - 80;
     if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
       resetToIdleScreen();
       return;
     }
     if (ui.showHighScorePrompt) {
-        if (rectContains(promptX, promptY, promptWidth, 54, x, y)) {
+        if (rectContains(promptX, promptY, promptWidth, promptHeight, x, y)) {
         activateSaveNameInput();
         return;
       }
