@@ -456,6 +456,39 @@ function drawGameOverOverlay(){
   ui.startLabel = 'Restart';
 }
 
+function drawStartScreen() {
+  const btnW = 260;
+  const btnH = 80;
+  const btnX = (W - btnW) / 2;
+  const btnY = (H - btnH) / 2;
+
+  // Dark overlay
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Game title
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 64px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("ROAD FIGHTER", W / 2, btnY - 80);
+
+  // Start button
+  ctx.fillStyle = "#00c853";
+  drawRoundedRect(btnX, btnY, btnW, btnH, 20);
+  ctx.fill();
+
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText("START", W / 2, btnY + 52);
+
+  ctx.restore();
+}
+
 // main render
 function render(){
   if (showRotateToPortrait) {
@@ -549,6 +582,10 @@ function render(){
 
   // draw in-canvas UI controls
   drawCanvasUI();
+  // Show start screen before first game starts
+  if (!state.running && state.player.alive) {
+    drawStartScreen();
+  }
 }
 
 // Canvas UI drawing
@@ -1377,6 +1414,20 @@ function activateSaveNameInput(){
 
 // Handle pointer interactions on canvas
 function handleCanvasPointer(x,y){
+  // Initial start screen
+  if (!state.running && state.player.alive) {
+    const btnW = 260;
+    const btnH = 80;
+    const btnX = (W - btnW) / 2;
+    const btnY = (H - btnH) / 2;
+
+    if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
+      startGame();
+    }
+
+    return;
+  }
+
   if (!state.running && !state.player.alive) {
     const panelW = Math.min(520, W - 40);
     const panelH = 380;
