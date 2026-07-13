@@ -298,6 +298,7 @@ function resetToIdleScreen(){
   ui.saveName = '';
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
+  playBgMusic();
 }
 
 function evaluateHighScore(){
@@ -864,7 +865,7 @@ function update(){
   if(state.spawnTimer >= state.spawnInterval){
     state.spawnTimer = 0;
     spawnObstacle();
-     if (Math.random() < 0.5) {
+     if (Math.random() < 2) {
         spawnTree();
     }
     // slowly decrease interval as game progresses
