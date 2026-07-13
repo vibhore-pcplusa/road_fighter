@@ -13,7 +13,6 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // UI will be drawn inside canvas. Keep minimal UI state here.
 const ui = {
-  startLabel: 'Start',
   pauseLabel: 'Pause',
   panels: { save: false, leaders: false, controls: false },
   toast: null,
@@ -295,7 +294,6 @@ function resetToIdleScreen(){
   state.player = createPlayer();
   state.player.alive = true;
   state.explosion = null;
-  ui.startLabel = 'Start';
   ui.pauseLabel = 'Pause';
   ui.saveName = '';
   ui.showHighScorePrompt = false;
@@ -453,7 +451,6 @@ function drawGameOverOverlay(){
   ctx.restore();
 
   drawExplosion();
-  ui.startLabel = 'Restart';
 }
 
 function drawStartScreen() {
@@ -596,7 +593,7 @@ function drawCanvasUI(){
   const btnW = 120, btnH = 44, gap = 12;
   const x = 18, y = 48;
   ctx.fillStyle = '#222'; ctx.globalAlpha = 0.9;
-  ctx.fillRect(x-8, y-12, btnW*2 + gap + 24, btnH + 24);
+  ctx.fillRect(x-8, y-12, btnW + 17, btnH + 24);
   ctx.globalAlpha = 1;
 
   
@@ -606,11 +603,6 @@ function drawCanvasUI(){
   ctx.fillStyle = '#000'; 
   ctx.font = '23px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText(ui.pauseLabel, x + btnW/2, y + 28);
-
-  // Start
-  ctx.fillStyle = '#0a8';
-  ctx.fillRect(x + btnW + gap, y, btnW, btnH);
-  ctx.fillStyle = '#000';  ctx.fillText(ui.startLabel, x + btnW/2 + btnW + gap, y + 28);
 
   // Draw panels if open
   if (ui.panels.leaders) drawLeadersPanel();
@@ -1499,7 +1491,6 @@ function handleCanvasPointer(x,y){
   const btnW = 120, btnH = 44, gap = 12;
   const bx = 18, by = 48;
   if (rectContains(bx,by,btnW,btnH,x,y)) { togglePause(); return; }
-  if (rectContains(bx + btnW + gap,by,btnW,btnH,x,y)) { startGame(); return; }
   
   // Panel buttons (bottom-right)
   const pW = 96, pH = 36; const px = W - pW - 18, py = H - pH - 18;
