@@ -298,7 +298,7 @@ function resetToIdleScreen(){
   ui.saveName = '';
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
-  playBgMusic();
+  //playBgMusic();//stopped annoying music here at starting screen. 
 }
 
 function evaluateHighScore(){
@@ -1556,7 +1556,6 @@ function closeQuickMenu() {
   const toggle = document.getElementById('settingsToggle');
   if (menu) {
     menu.classList.remove('open');
-    menu.setAttribute('aria-hidden', 'true');
   }
   if (toggle) toggle.setAttribute('aria-expanded', 'false');
 }
@@ -1569,7 +1568,6 @@ function toggleQuickMenu(force) {
   const shouldOpen = typeof force === 'boolean' ? force : !ui.quickMenuOpen;
   ui.quickMenuOpen = shouldOpen;
   menu.classList.toggle('open', shouldOpen);
-  menu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
   toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
 }
 
@@ -1592,7 +1590,6 @@ function openPanel(id) {
   // close others
   ['leadersPanel','controlsPanel'].forEach(function(pid){ if(pid!==id){ var p=$id(pid); if(p) p.style.display='none'; } });
   el.style.display = 'block';
-  el.setAttribute('aria-hidden','false');
   // populate when opened
   if (id === 'leadersPanel') renderFullLeaders();
 }
@@ -1600,12 +1597,10 @@ function closePanel(id) {
   var el = $id(id);
   if (!el) return;
   el.style.display = 'none';
-  el.setAttribute('aria-hidden','true');
 }
 
 // Setup event bindings
 function setupUI() {
-  //console.log("1278 setup ui");
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
 
@@ -1811,3 +1806,12 @@ function resizeCanvas() {
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
+// Add this below the function definitions
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (!state.paused) {
+      togglePause();
+    }
+  }
+});
