@@ -865,9 +865,10 @@ function update(){
   if(state.spawnTimer >= state.spawnInterval){
     state.spawnTimer = 0;
     spawnObstacle();
-     if (Math.random() < 2) {
+
         spawnTree();
-    }
+        spawnTree();
+        
     // slowly decrease interval as game progresses
     if(state.spawnInterval > 36 && state.frames % 600 === 0) state.spawnInterval -= 6;
   }
@@ -1604,7 +1605,7 @@ function closePanel(id) {
 
 // Setup event bindings
 function setupUI() {
-  console.log("1278 setup ui");
+  //console.log("1278 setup ui");
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
 
