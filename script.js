@@ -1042,6 +1042,8 @@ function startGame(){
   state.score = 0;
   state.level = 1;
   state.speed = 3;
+  state.minSpeed = 2;
+  state.maxSpeed = 12;
   state.speedTarget = 3;
   state.spawnInterval = 90;
   state.obstacles.length = 0;   // ✅ clear array fully
