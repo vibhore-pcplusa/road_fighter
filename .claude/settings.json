@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"^function.*{$\\\\|function handlePointer\\\\|function onPointer\\\\|getBoundingClientRect\\\\|clientX\" /Users/admin/Documents/road_fighter/script.js)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(which chromium-cli *)",
+      "Read(//private/tmp/claude-501/bundled-skills/2.1.206/**)",
+      "Bash(find / -maxdepth 6 -iname \"*chromium-cli*\")",
+      "Bash(find / -maxdepth 8 -iname \"SKILL.md\")",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npm ls *)",
+      "Bash(node -e \"console.log\\(require\\('playwright'\\).chromium\\)\")",
+      "Bash(pkill -f \"php -S localhost:8811\")"
+    ]
+  }
+}

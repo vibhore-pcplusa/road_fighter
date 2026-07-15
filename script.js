@@ -605,9 +605,6 @@ function drawCanvasUI(){
   ctx.font = '23px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText(ui.pauseLabel, x + btnW/2, y + 28);
 
-  // Draw panels if open
-  if (ui.panels.leaders) drawLeadersPanel();
-  if (ui.panels.controls) drawControlsPanel();
   positionHiddenSaveInput();
 
   // draw control images (up/down/left/right) near bottom-right
@@ -1013,6 +1010,13 @@ function moveRight(){
   p.targetX = lanes[p.lane];
 }
 
+// Leaders/controls panels are drawn last so they stay on top of the
+// start screen and game-over overlays, which are drawn after drawCanvasUI.
+function drawTopmostPanels(){
+  if (ui.panels.leaders) drawLeadersPanel();
+  if (ui.panels.controls) drawControlsPanel();
+}
+
 // game loop
 function loop(){
   requestAnimationFrame(loop);
@@ -1022,6 +1026,7 @@ function loop(){
   if(!state.running && !state.player.alive){
     drawGameOverOverlay();
   }
+  if (assetsReady && !showRotateToPortrait) drawTopmostPanels();
 }
 
 // start / restart
@@ -1410,6 +1415,46 @@ function activateSaveNameInput(){
 
 // Handle pointer interactions on canvas
 function handleCanvasPointer(x,y){
+  // Leaders/controls/save panels can be opened via the quick menu regardless of
+  // game state (start screen, game-over screen, or mid-game), so their close
+  // handling must take priority over those screens' own click handling below.
+  if (ui.panels.leaders) {
+    const w = 560, h = 550; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.leaders = false; ui.inputActive = false;
+    }
+    return;
+  }
+
+  if (ui.panels.controls) {
+    const w = 520, h = 340; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.controls = false; ui.inputActive = false;
+    }
+    return;
+  }
+
+  if (ui.panels.save) {
+    const w = 460, h = 240; const sx = (W - w)/2, sy = (H - h)/2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+      ui.panels.save = false; ui.inputActive = false; return;
+    }
+    // Save button rect
+    if (rectContains(sx + w - 140, sy + h - 58, 140, 50, x, y)) {
+      saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
+    }
+    // name input area: toggle focus and start typing
+    if (rectContains(sx + 24, sy + 156, w - 28, 59, x, y)) { activateSaveNameInput(); return; }
+    if (!rectContains(sx, sy, w, h, x, y)) { ui.panels.save = false; ui.inputActive = false; }
+    return;
+  }
+
   // Initial start screen
   if (!state.running && state.player.alive) {
     const btnW = 260;
@@ -1500,47 +1545,6 @@ function handleCanvasPointer(x,y){
   if (rectContains(px - (pW+8),py,pW,pH,x,y)) { ui.panels.leaders = !ui.panels.leaders; ui.panels.save = false; ui.panels.controls = false; return; }
   if (rectContains(px - 2*(pW+8),py,pW,pH,x,y)) { ui.panels.controls = !ui.panels.controls; ui.panels.save = false; ui.panels.leaders = false; return; }
 
-  // If save panel open, detect save button inside it
-  if (ui.panels.save) {
-    const w = 460, h = 240; const sx = (W - w)/2, sy = (H - h)/2;
-    const closeX = sx + w - 40;
-    const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
-      ui.panels.save = false; ui.inputActive = false; return;
-    }
-    // Save button rect
-    if (rectContains(sx + w - 140, sy + h - 58, 140, 50, x, y)) {
-      saveScoreByName(ui.saveName || 'Player'); ui.panels.save = false; ui.inputActive = false; return;
-    }
-    // name input area: toggle focus and start typing
-    if (rectContains(sx + 24, sy + 156, w - 28, 59, x, y)) { activateSaveNameInput(); return; }
-  }
-
-  if (ui.panels.leaders) {
-    const w = 560, h = 480; const sx = (W - w)/2, sy = (H - h)/2;
-    const closeX = sx + w - 40;
-    const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
-      ui.panels.leaders = false; ui.inputActive = false; return;
-    }
-  }
-
-  if (ui.panels.controls) {
-    const w = 520, h = 340; const sx = (W - w)/2, sy = (H - h)/2;
-    const closeX = sx + w - 40;
-    const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
-      ui.panels.controls = false; ui.inputActive = false; return;
-    }
-  }
-
-  // close panels when tapping outside
-  if (ui.panels.save || ui.panels.leaders || ui.panels.controls) {
-    const open = ui.panels.save ? {x:(W-460)/2,y:(H-240)/2,w:460,h:240}
-                : ui.panels.leaders ? {x:(W-560)/2,y:(H-480)/2,w:560,h:480}
-                : {x:(W-520)/2,y:(H-340)/2,w:520,h:340};
-    if (!rectContains(open.x, open.y, open.w, open.h, x, y)) { ui.panels.save = ui.panels.leaders = ui.panels.controls = false; ui.inputActive = false; }
-  }
 }
 
 function renderFullLeaders() {
