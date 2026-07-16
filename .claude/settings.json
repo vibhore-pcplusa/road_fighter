@@ -16,7 +16,8 @@
       "Bash(curl -s \"https://api.cdnjs.com/libraries/font-awesome/6.5.2?fields=name,version,sri\")",
       "Read(//Applications/**)",
       "Bash(npm install *)",
-      "Bash(node check.js)"
+      "Bash(node check.js)",
+      "Bash(node --check /Users/admin/Documents/road_fighter/script.js)"
     ]
   }
 }

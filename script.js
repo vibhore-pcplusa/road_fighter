@@ -625,7 +625,7 @@ function drawCanvasUI(){
   // draw control images (up/down/left/right) near bottom-right
   //const size = Math.min(72, Math.max(48, Math.floor(W * 0.08)));
   const size = 76;//fixed size
-  const cx = W - 170; const cy = H - 125;
+  const cx = W - 210; const cy = H - 125;
   const positions = {
     up: { x: cx, y: cy - size },
     down: { x: cx, y: cy + size },

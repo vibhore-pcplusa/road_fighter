@@ -99,8 +99,8 @@ svg {
 
 .gun-overlay {
   position: absolute;
-  bottom: 24px;
-  left: 18px;
+  bottom: 34px;
+  left: 38px;
   z-index: 12;
   pointer-events: auto;
 }
