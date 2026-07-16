@@ -155,11 +155,13 @@ let state = {
   spawnInterval: 90, // frames
   obstacles: [],
   bullets: [],
+  coins: [],
+  floatingTexts: [],
   trees:[],
-  player: createPlayer(), 
+  player: createPlayer(),
   frames: 0,
-  minSpeed: 2,  
-  maxSpeed: 12  
+  minSpeed: 2,
+  maxSpeed: 12
 };
 
 // explosion state (shown on collision)
@@ -223,6 +225,46 @@ function spawnObstacle(){
     color: type==='car' ? "#cc3333" : "#444"
   };
   state.obstacles.push(obj);
+}
+
+const COIN_COLORS = {
+  500: '#FFD700',  // gold
+  200: '#FF6B6B',  // red
+  100: '#4ECDC4',  // teal
+  50: '#9D84B7'    // purple
+};
+
+function spawnCoin(){
+  const lane = Math.floor(Math.random()*3);
+  const rand = Math.random();
+  let value;
+  if (rand < 0.05) value = 500;
+  else if (rand < 0.15) value = 200;
+  else if (rand < 0.30) value = 100;
+  else value = 50;
+
+  const coin = {
+    lane,
+    x: lanes[lane],
+    y: -40,
+    width: 60,
+    height: 60,
+    speed: state.speed,
+    type: 'coin',
+    value,
+    color: COIN_COLORS[value]
+  };
+  state.coins.push(coin);
+}
+
+function addFloatingText(x, y, text, duration = 1500) {
+  state.floatingTexts.push({
+    x,
+    y,
+    text,
+    startTime: Date.now(),
+    duration
+  });
 }
 
 function spawnTree() {
@@ -290,6 +332,8 @@ function resetToIdleScreen(){
   state.spawnInterval = 90;
   state.obstacles.length = 0;
   state.bullets.length = 0;
+  state.coins.length = 0;
+  state.floatingTexts.length = 0;
   state.trees.length = 0;
   state.frames = 0;
   roadOffset = 0;
@@ -562,6 +606,39 @@ function render(){
   ctx.fillRect(6,p.height-12,12,8);
   ctx.fillRect(p.width-18,p.height-12,12,8);
   ctx.restore();
+
+  // draw coins
+  for(const c of state.coins){
+    ctx.save();
+    ctx.fillStyle = c.color;
+    ctx.shadowColor = 'rgba(255, 255, 0, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.width/2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.value, c.x, c.y);
+    ctx.restore();
+  }
+
+  // draw floating texts
+  for(const t of state.floatingTexts){
+    const elapsed = Date.now() - t.startTime;
+    const progress = elapsed / t.duration; // 0 to 1
+    const alpha = Math.max(0, 1 - progress);
+    const offsetY = progress * 40; // move up over time
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.text, t.x, t.y - offsetY);
+    ctx.restore();
+  }
 
   // draw bullets
   for(const b of state.bullets){
@@ -885,15 +962,16 @@ function update(){
   if (Math.abs(state.speedTarget - state.speed) < 0.001) {
     state.speed = state.speedTarget;
   }
-  // spawn obstacles
+  // spawn obstacles and coins
   state.spawnTimer++;
   if(state.spawnTimer >= state.spawnInterval){
     state.spawnTimer = 0;
     spawnObstacle();
+    if(Math.random() < 0.3) spawnCoin();
 
         spawnTree();
         spawnTree();
-        
+
     // slowly decrease interval as game progresses
     if(state.spawnInterval > 36 && state.frames % 600 === 0) state.spawnInterval -= 6;
   }
@@ -920,6 +998,22 @@ function update(){
         state.trees.splice(i, 1);
     }
 }
+
+  // update coins
+  for(let i = state.coins.length - 1; i >= 0; i--){
+    const c = state.coins[i];
+    c.y += state.speed;
+    if (c.y > H + 50) { state.coins.splice(i,1); continue; }
+
+    // coin collision with player
+    const cBox = { x: c.x, y: c.y, width: c.width, height: c.height };
+    const pBox = { x: state.player.x, y: state.player.y + state.player.height/2, width: state.player.width, height: state.player.height };
+    if (collides(cBox, pBox)) {
+      state.score += c.value;
+      addFloatingText(c.x, c.y, '+' + c.value);
+      state.coins.splice(i, 1);
+    }
+  }
 
   // update bullets (travel upward, away from the player, toward oncoming obstacles)
   for(let i = state.bullets.length - 1; i >= 0; i--){
@@ -974,7 +1068,13 @@ function update(){
     }
   }
 
-  
+  // update floating texts
+  for(let i = state.floatingTexts.length - 1; i >= 0; i--){
+    const t = state.floatingTexts[i];
+    const elapsed = Date.now() - t.startTime;
+    if (elapsed > t.duration) { state.floatingTexts.splice(i, 1); }
+  }
+
   if(state.frames % 6 === 0) {
     // scoring: add points over time
     state.score += Math.floor(1 + state.level*0.3); //time based.
@@ -1109,6 +1209,8 @@ function startGame(){
   state.spawnInterval = 90;
   state.obstacles.length = 0;   // ✅ clear array fully
   state.bullets.length = 0;
+  state.coins.length = 0;
+  state.floatingTexts.length = 0;
   state.trees.length = 0;
   roadOffset = 0;               // ✅ reset lane animation
   state.frames = 0;
