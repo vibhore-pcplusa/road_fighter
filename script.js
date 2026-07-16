@@ -296,6 +296,7 @@ function resetToIdleScreen(){
   state.player = createPlayer();
   state.player.alive = true;
   state.explosion = null;
+  ui.lastShotFrame = -Infinity;
   ui.pauseLabel = 'Pause';
   ui.saveName = '';
   ui.showHighScorePrompt = false;
@@ -1101,6 +1102,7 @@ function startGame(){
   state.spawnTimer = 0;
   state.player = createPlayer();
   state.player.alive = true;
+  ui.lastShotFrame = -Infinity;
   // ensure UI labels
   ui.startLabel = 'Running';
   ui.pauseLabel = 'Pause';
