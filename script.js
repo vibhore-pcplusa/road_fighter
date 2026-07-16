@@ -652,6 +652,19 @@ function drawCanvasUI(){
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(ui.toast, W/2, 105);
   }
 
+  // Resume button in center when paused
+  if (state.paused && state.running) {
+    const resumeBtnW = 200, resumeBtnH = 70;
+    const resumeBtnX = (W - resumeBtnW) / 2, resumeBtnY = (H - resumeBtnH) / 2;
+    ui._resumeBtn = { x: resumeBtnX, y: resumeBtnY, w: resumeBtnW, h: resumeBtnH };
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(resumeBtnX, resumeBtnY, resumeBtnW, resumeBtnH);
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('RESUME', W/2, resumeBtnY + resumeBtnH/2 + 12);
+  }
+
   ctx.restore();
 }
 
@@ -1566,6 +1579,15 @@ function handleCanvasPointer(x,y){
     }
     if (rectContains(buttonX, buttonY, buttonW, buttonH, x, y)) {
       startGame();
+      return;
+    }
+  }
+
+  // Resume button click
+  if (ui._resumeBtn && state.paused && state.running) {
+    const btn = ui._resumeBtn;
+    if (rectContains(btn.x, btn.y, btn.w, btn.h, x, y)) {
+      togglePause();
       return;
     }
   }
