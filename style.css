@@ -97,6 +97,35 @@ svg {
   background: rgba(28, 52, 83, 0.98);
 }
 
+.gun-overlay {
+  position: absolute;
+  bottom: 24px;
+  left: 18px;
+  z-index: 12;
+  pointer-events: auto;
+}
+
+.gun-toggle {
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(150, 20, 20, 0.88);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.34);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.gun-toggle:active {
+  transform: scale(0.9);
+  background: rgba(190, 30, 30, 0.95);
+}
+
 /* Canvas sizing (drawing resolution handled in JS) */
 canvas {
   display: block;

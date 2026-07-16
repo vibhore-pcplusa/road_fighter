@@ -11,7 +11,12 @@
       "Bash(node -e \"require.resolve\\('playwright'\\)\")",
       "Bash(npm ls *)",
       "Bash(node -e \"console.log\\(require\\('playwright'\\).chromium\\)\")",
-      "Bash(pkill -f \"php -S localhost:8811\")"
+      "Bash(pkill -f \"php -S localhost:8811\")",
+      "Bash(curl -sI https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css)",
+      "Bash(curl -s \"https://api.cdnjs.com/libraries/font-awesome/6.5.2?fields=name,version,sri\")",
+      "Read(//Applications/**)",
+      "Bash(npm install *)",
+      "Bash(node check.js)"
     ]
   }
 }

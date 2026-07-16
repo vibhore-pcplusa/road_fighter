@@ -7,6 +7,7 @@
 
   <!-- link external stylesheet -->
   <link rel="stylesheet" href="style.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
   <svg preserveAspectRatio="xMidYMid slice" viewBox="10 10 80 80">
@@ -55,6 +56,11 @@
     </div>
     <canvas id="game" width="720" height="1200"></canvas> <!-- increased logical canvas default -->
     <!-- All game UI (controls, panels, leaders) rendered inside canvas now -->
+    <div id="gunOverlay" class="gun-overlay">
+      <button id="gunToggle" class="gun-toggle" type="button" aria-label="Shoot">
+        <i class="fa-solid fa-gun"></i>
+      </button>
+    </div>
   </div>
 
   <!-- In-canvas UI will replace the DOM panels and buttons. vibhore-->

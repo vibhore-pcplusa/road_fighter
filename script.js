@@ -154,6 +154,7 @@ let state = {
   spawnTimer: 0,
   spawnInterval: 90, // frames
   obstacles: [],
+  bullets: [],
   trees:[],
   player: createPlayer(), 
   frames: 0,
@@ -288,6 +289,7 @@ function resetToIdleScreen(){
   state.spawnTimer = 0;
   state.spawnInterval = 90;
   state.obstacles.length = 0;
+  state.bullets.length = 0;
   state.trees.length = 0;
   state.frames = 0;
   roadOffset = 0;
@@ -559,6 +561,18 @@ function render(){
   ctx.fillRect(6,p.height-12,12,8);
   ctx.fillRect(p.width-18,p.height-12,12,8);
   ctx.restore();
+
+  // draw bullets
+  for(const b of state.bullets){
+    ctx.save();
+    ctx.fillStyle = '#ffe066';
+    ctx.shadowColor = '#ff9900';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, 5, 14, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // HUD Header Dashboard Starts
   ctx.save();
@@ -893,6 +907,26 @@ function update(){
     }
 }
 
+  // update bullets (travel upward, away from the player, toward oncoming obstacles)
+  for(let i = state.bullets.length - 1; i >= 0; i--){
+    const b = state.bullets[i];
+    b.y -= b.speed;
+    if (b.y < -20) { state.bullets.splice(i,1); continue; }
+
+    // hit the nearest obstacle ahead of the player in the bullet's lane
+    let hitIndex = -1;
+    for(let j = state.obstacles.length - 1; j >= 0; j--){
+      const o = state.obstacles[j];
+      if (o.lane !== b.lane) continue;
+      if (Math.abs(o.y - b.y) < o.height/2 + 10) { hitIndex = j; break; }
+    }
+    if (hitIndex !== -1) {
+      state.obstacles.splice(hitIndex, 1);
+      state.bullets.splice(i, 1);
+      state.score += 25;
+    }
+  }
+
   // collision check: use approximated bbox with lane centers
   for(const o of state.obstacles){
     if (!state.running) break;  // ✅ stop checking if game already ended
@@ -1010,6 +1044,20 @@ function moveRight(){
   p.targetX = lanes[p.lane];
 }
 
+const GUN_COOLDOWN_FRAMES = 15; // ~0.25s at 60fps
+function shootBullet(){
+  if (!state.running || state.paused || !state.player.alive) return;
+  if (state.frames - (ui.lastShotFrame || -Infinity) < GUN_COOLDOWN_FRAMES) return;
+  ui.lastShotFrame = state.frames;
+  const p = state.player;
+  state.bullets.push({
+    x: p.x,
+    y: p.y - p.height/2,
+    lane: p.lane,
+    speed: 24
+  });
+}
+
 // Leaders/controls panels are drawn last so they stay on top of the
 // start screen and game-over overlays, which are drawn after drawCanvasUI.
 function drawTopmostPanels(){
@@ -1046,6 +1094,7 @@ function startGame(){
   state.speedTarget = 3;
   state.spawnInterval = 90;
   state.obstacles.length = 0;   // ✅ clear array fully
+  state.bullets.length = 0;
   state.trees.length = 0;
   roadOffset = 0;               // ✅ reset lane animation
   state.frames = 0;
@@ -1612,6 +1661,14 @@ function setupUI() {
     settingsToggle.addEventListener('click', function(e){
       e.stopPropagation();
       toggleQuickMenu();
+    });
+  }
+
+  const gunToggle = document.getElementById('gunToggle');
+  if (gunToggle) {
+    gunToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      shootBullet();
     });
   }
 
