@@ -119,11 +119,18 @@ svg {
   color: #fff;
   font-size: 24px;
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .gun-toggle:active {
   transform: scale(0.9);
   background: rgba(190, 30, 30, 0.95);
+  outline: none;
+}
+
+.gun-toggle:focus {
+  outline: none;
 }
 
 /* Canvas sizing (drawing resolution handled in JS) */

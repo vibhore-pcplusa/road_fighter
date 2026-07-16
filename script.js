@@ -330,7 +330,7 @@ function drawGameOverOverlay(){
   const panelW = Math.min(520, W - 40);
   const panelH = 380;
   const panelX = (W - panelW) / 2;
-  const panelY = (H - panelH) / 2;
+  const panelY = (H - panelH) / 2 - 150;
   const buttonW = 220;
   const buttonH = 62;
   const buttonX = (W - buttonW) / 2;
@@ -1449,9 +1449,9 @@ function positionHiddenSaveInput(){
   } else {
     const w = Math.min(520, canvas.width - 40);
     const sx = (canvas.width - w) / 2;
-    const sy = (canvas.height - 320) / 2;
+    const sy = (canvas.height - 380) / 2 - 150;
     inputX = rect.left + (sx + 24) * scaleX;
-    inputY = rect.top + (sy + 180) * scaleY;
+    inputY = rect.top + (sy + 210) * scaleY;
     width = (w - 48) * scaleX;
   }
 
@@ -1537,7 +1537,7 @@ function handleCanvasPointer(x,y){
     const panelW = Math.min(520, W - 40);
     const panelH = 380;
     const panelX = (W - panelW) / 2;
-    const panelY = (H - panelH) / 2;
+    const panelY = (H - panelH) / 2 - 150;
     const buttonW = 220;
     const buttonH = 62;
     const buttonX = (W - buttonW) / 2;
