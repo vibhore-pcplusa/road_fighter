@@ -150,6 +150,7 @@ let state = {
   running: false,
   paused: false,
   score: 0,
+  distance: 0,
   level: 1,
   speed: 3,
   speedTarget: 3,
@@ -328,6 +329,8 @@ function resetToIdleScreen(){
   state.running = false;
   state.paused = false;
   state.score = 0;
+  state.distance = 0;
+  state.scoreFromCoins = 0;
   state.level = 1;
   state.speed = 3;
   state.speedTarget = 3;
@@ -407,9 +410,21 @@ function drawGameOverOverlay(){
   ctx.font = "bold 54px sans-serif";
   ctx.fillText("GAME OVER", W / 2, panelY + 95);
 
+  ctx.fillStyle = "#87CEEB";
+  ctx.font = "24px sans-serif";
+  let distanceText;
+  if (state.distance >= 1000) {
+    distanceText = "Distance: " + (Math.floor(state.distance / 100) / 10).toFixed(1) + " Km";
+  } else {
+    distanceText = "Distance: " + Math.floor(state.distance) + " m";
+  }
+  ctx.fillText(distanceText, W / 2, panelY + 119);
+
   ctx.fillStyle = "#ffd166";
   ctx.font = "30px sans-serif";
   ctx.fillText("Final Score: " + state.score, W / 2, panelY + 150);
+
+
 
   if (ui.showHighScorePrompt) {
     const promptX = panelX + 24;
@@ -972,9 +987,9 @@ function update(){
       moveRight();
     }
   } else {
-    // when brake is released, automatically accelerate back to minimum speed
+    // when brake is released, automatically accelerate back to minimum speed (very slowly)
     if (state.speedTarget < state.minSpeed) {
-      state.speedTarget = Math.min(state.minSpeed, state.speedTarget + 0.15);
+      state.speedTarget = Math.min(state.minSpeed, state.speedTarget + 0.015);
     } else {
       // natural friction when above minimum speed with no input
       state.speedTarget = Math.max(state.minSpeed, state.speedTarget - 0.015);
@@ -1035,7 +1050,8 @@ function update(){
     const cBox = { x: c.x, y: c.y, width: c.width, height: c.height };
     const pBox = { x: state.player.x, y: state.player.y + state.player.height/2, width: state.player.width, height: state.player.height };
     if (collides(cBox, pBox)) {
-      state.score += c.value;
+      if (!state.scoreFromCoins) state.scoreFromCoins = 0;
+      state.scoreFromCoins += c.value;
       addFloatingText(c.x, c.y, '+' + c.value);
       state.coins.splice(i, 1);
     }
@@ -1101,15 +1117,15 @@ function update(){
     if (elapsed > t.duration) { state.floatingTexts.splice(i, 1); }
   }
 
-  if(state.frames % 6 === 0) {
-    // scoring: add points over time
-    state.score += Math.floor(1 + state.level*0.3); //time based.
-    //scoreEl.textContent = state.score;
-  }
+  // distance-based scoring: add distance based on current speed
+  state.distance += state.speed * 0.1;
+  // ensure score is at least the distance (but coins can increase it further)
+  const distanceScore = Math.floor(state.distance);
+  if (!state.scoreFromCoins) state.scoreFromCoins = 0;
+  state.score = distanceScore + state.scoreFromCoins;
 
-
-  // level up every 1000 points
-  const newLevel = Math.floor(state.score / 400) + 1;
+  // level up based on distance traveled
+  const newLevel = Math.floor(state.distance / 400) + 1;
   if(newLevel !== state.level){
     state.level = newLevel;
     state.speed += 0.6;
@@ -1229,6 +1245,8 @@ function startGame(){
   state.running = true;
   state.paused = false;
   state.score = 0;
+  state.distance = 0;
+  state.scoreFromCoins = 0;
   state.level = 1;
   state.speed = 3;
   state.minSpeed = 2;
