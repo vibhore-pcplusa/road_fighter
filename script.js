@@ -144,6 +144,8 @@ let roadOffset = 0;
 
 const W = canvas.width, H = canvas.height;
 const lanes = [W*0.18, W*0.5, W*0.82]; // center x positions for 3 lanes
+const MAX_BULLETS = 10;
+
 let state = {
   running: false,
   paused: false,
@@ -155,6 +157,7 @@ let state = {
   spawnInterval: 90, // frames
   obstacles: [],
   bullets: [],
+  bulletsRemaining: MAX_BULLETS,
   coins: [],
   floatingTexts: [],
   trees:[],
@@ -332,6 +335,7 @@ function resetToIdleScreen(){
   state.spawnInterval = 90;
   state.obstacles.length = 0;
   state.bullets.length = 0;
+  state.bulletsRemaining = MAX_BULLETS;
   state.coins.length = 0;
   state.floatingTexts.length = 0;
   state.trees.length = 0;
@@ -722,6 +726,17 @@ function drawCanvasUI(){
     else { ctx.fillStyle = '#888'; ctx.fillRect(p.x - size/2, p.y - size/2, size, size); }
   }
   ui._controlPos = positions; // cache for hit tests
+
+  // draw bullet counter next to gun icon (bottom-right corner)
+  const bulletCountX = W - 500; const bulletCountY = H - 70;
+  ctx.save();
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 56px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#FF9900';
+  ctx.shadowBlur = 12;
+  ctx.fillText(state.bulletsRemaining + '/' + MAX_BULLETS, bulletCountX, bulletCountY);
+  ctx.restore();
 
   // toast
   if (ui.toast) {
@@ -1162,11 +1177,13 @@ const GUN_COOLDOWN_FRAMES = 15; // ~0.25s at 60fps
 function shootBullet(){
   if (!state.running || state.paused || !state.player.alive) return;
   if (state.frames - (ui.lastShotFrame || -Infinity) < GUN_COOLDOWN_FRAMES) return;
+  if (state.bulletsRemaining <= 0) return;
   ui.lastShotFrame = state.frames;
+  state.bulletsRemaining--;
   const p = state.player;
   state.bullets.push({
     x: p.x,
-    y: p.y - p.height/2,
+    y: p.y,
     lane: p.lane,
     speed: 24
   });
@@ -1209,6 +1226,7 @@ function startGame(){
   state.spawnInterval = 90;
   state.obstacles.length = 0;   // ✅ clear array fully
   state.bullets.length = 0;
+  state.bulletsRemaining = MAX_BULLETS;
   state.coins.length = 0;
   state.floatingTexts.length = 0;
   state.trees.length = 0;
