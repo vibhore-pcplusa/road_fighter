@@ -180,7 +180,7 @@ function clampSpeed(value){
 
 function setSpeedTarget(value){
   if (!state.running || state.paused || state.gameOver) return;
-  state.speedTarget = clampSpeed(value);
+  state.speedTarget = Math.min(state.maxSpeed, value);
 }
 
 // Player definition
@@ -956,27 +956,38 @@ function update(){
   if(!state.running || state.paused) return;
 
   state.frames++;
+  const isBraking = ui.holding === 'brake';
+  const MIN_REVERSE_SPEED = 0;
+
   // handle continuous hold actions
   if (ui.holding) {
     ui.holdFrames++;
     if (ui.holding === 'accelerate') {
-      setSpeedTarget(state.speedTarget + 0.08);
+      state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.02);
     } else if (ui.holding === 'brake') {
-      setSpeedTarget(state.speedTarget - 0.12);
+      state.speedTarget = Math.max(MIN_REVERSE_SPEED, state.speedTarget - 0.12);
     } else if (ui.holding === 'left' && ui.holdFrames % 12 === 0) {
       moveLeft();
     } else if (ui.holding === 'right' && ui.holdFrames % 12 === 0) {
       moveRight();
     }
   } else {
-    // natural friction so the car slows down smoothly when no input is pressed
-    setSpeedTarget(Math.max(state.minSpeed, state.speedTarget - 0.015));
+    // when brake is released, automatically accelerate back to minimum speed
+    if (state.speedTarget < state.minSpeed) {
+      state.speedTarget = Math.min(state.minSpeed, state.speedTarget + 0.15);
+    } else {
+      // natural friction when above minimum speed with no input
+      state.speedTarget = Math.max(state.minSpeed, state.speedTarget - 0.015);
+    }
   }
 
   state.speed += (state.speedTarget - state.speed) * 0.12;
   if (Math.abs(state.speedTarget - state.speed) < 0.001) {
     state.speed = state.speedTarget;
   }
+
+  // clamp actual speed to min/max and reverse limits
+  state.speed = Math.max(0, Math.min(state.maxSpeed, state.speed));
   // spawn obstacles and coins
   state.spawnTimer++;
   if(state.spawnTimer >= state.spawnInterval){
@@ -1133,12 +1144,12 @@ window.addEventListener('keydown', e => {
       break;
     case "ArrowUp":
     case "w":
-      setSpeedTarget(state.speedTarget + 0.4);
+      state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.4);
       playSound("accelerate"); // --- SOUND ADDITION ---
       break;
     case "ArrowDown":
     case "s":
-      setSpeedTarget(state.speedTarget - 0.4);
+      state.speedTarget = Math.max(0, state.speedTarget - 0.4);
       playSound("brake"); // --- SOUND ADDITION ---
       break;
     case "ArrowRight":
