@@ -509,12 +509,12 @@ function drawGameOverOverlay(){
 
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(closeX, closeY, 16, 0, Math.PI * 2);
+  ctx.arc(closeX, closeY, 24, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#0d1426";
-  ctx.font = "bold 20px sans-serif";
+  ctx.font = "bold 28px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("X", closeX, closeY + 7);
+  ctx.fillText("X", closeX, closeY + 8);
   ctx.restore();
 
   drawExplosion();
@@ -1700,7 +1700,7 @@ function handleCanvasPointer(x,y){
     const saveX = W / 2 - 160 - 10;
     const cancelX = W / 2 + 10;
     const promptBtnY = panelY + panelH - 80;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y)) {
+    if (rectContains(closeX - 24, closeY - 24, 48, 48, x, y)) {
       resetToIdleScreen();
       return;
     }
