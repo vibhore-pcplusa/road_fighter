@@ -531,11 +531,36 @@ function drawStartScreen() {
   ctx.fillStyle = "rgba(0,0,0,0.45)";
   ctx.fillRect(0, 0, W, H);
 
-  // Game title
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 64px sans-serif";
+  // Game title with colorful letters (Google-style)
+  const title = "ROAD FIGHTER";
+  const colors = ["#EA4335", "#4285F4", "#FBBC04", "#34A853", "#EA4335", "#4285F4", "#FBBC04", "#34A853", "#EA4335", "#4285F4", "#FBBC04", "#34A853"];
+  const titleFontSize = 64;
+  const titleY = btnY - 80;
+
+  ctx.font = `bold ${titleFontSize}px sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("ROAD FIGHTER", W / 2, btnY - 80);
+  ctx.textBaseline = "middle";
+
+  const titleWidth = ctx.measureText(title).width;
+  const boxPadding = 30;
+  const boxX = W / 2 - titleWidth / 2 - boxPadding;
+  const boxY = titleY - titleFontSize / 2 - boxPadding;
+  const boxW = titleWidth + boxPadding * 2;
+  const boxH = titleFontSize + boxPadding * 2;
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  drawRoundedRect(boxX, boxY, boxW, boxH, 15);
+  ctx.fill();
+  ctx.stroke();
+
+  let xOffset = W / 2 - titleWidth / 2;
+  for (let i = 0; i < title.length; i++) {
+    const char = title[i];
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillText(char, xOffset + ctx.measureText(title.substring(0, i)).width + ctx.measureText(char).width / 2, titleY);
+  }
 
   // Start button
   ctx.fillStyle = "#00c853";
