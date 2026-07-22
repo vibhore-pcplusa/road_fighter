@@ -19,7 +19,10 @@
       "Bash(node check.js)",
       "Bash(node --check /Users/admin/Documents/road_fighter/script.js)",
       "Bash(php -S localhost:8000 > /tmp/php_server.log 2>&1 &)",
-      "Bash(curl -s http://localhost:8000)"
+      "Bash(curl -s http://localhost:8000)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Add colorful Google-style title and box decoration to start screen *)",
+      "Bash(git commit -m 'Update settings.json with permission allowlist *)"
     ],
     "additionalDirectories": [
       "/private/tmp"
