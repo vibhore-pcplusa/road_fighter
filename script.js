@@ -573,7 +573,7 @@ function drawStartScreen() {
 
   ctx.fillStyle = "#fff";
   ctx.font = "bold 36px sans-serif";
-  ctx.fillText("START", W / 2, btnY + 52);
+  ctx.fillText("START", W / 2, btnY + 42);
 
   ctx.restore();
 }
