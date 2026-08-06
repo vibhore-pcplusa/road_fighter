@@ -524,22 +524,68 @@ function ensureHiddenTextInput() {
   if (ui.hiddenInput) return ui.hiddenInput;
   const input = document.createElement('input');
   input.type = 'text';
+  input.inputMode = 'text';
   input.name = 'vjname';
   input.maxLength = 13;
   input.autocapitalize = 'words';
+  input.autocorrect = 'off';
   input.autocomplete = 'off';
   input.spellcheck = false;
   input.setAttribute('aria-label', 'Save your score name');
-  input.style.position = 'absolute';
+
+  // Match canvas textbox position exactly (centered in viewport)
+  input.style.position = 'fixed';
+  input.style.left = '50%';
+  input.style.top = '50%';
+  input.style.transform = 'translate(-50%, -50%)';
+  input.style.width = '260px';
+  input.style.height = '48px';
+  input.style.fontSize = '18px';
+  input.style.padding = '8px 12px';
+  input.style.fontFamily = 'sans-serif';
   input.style.opacity = '0';
   input.style.pointerEvents = 'none';
+  input.style.zIndex = '9999';
+  input.style.backgroundColor = '#ffffff';
+  input.style.color = '#000000';
+  input.style.border = '3px solid #ffd166';
+  input.style.borderRadius = '0px';
+  input.style.boxShadow = 'none';
+  input.style.margin = '0';
+  input.style.padding = '0';
+  input.style.border = 'none';
+  input.style.outline = 'none';
+
+  // Prevent layout shift and keyboard issues
+  input.style.display = 'block';
+  input.style.visibility = 'hidden';
+  input.style.clip = 'rect(0,0,0,0)';
+  input.style.clipPath = 'inset(50%)';
+  input.style.height = '1px';
+  input.style.width = '1px';
+  input.style.overflow = 'hidden';
+  input.style.whiteSpace = 'nowrap';
+
   input.addEventListener('input', function() {
     ui.saveName = input.value.trimStart();
   });
+
+  input.addEventListener('blur', function() {
+    // Refocus if still inputActive
+    if (ui.inputActive) {
+      setTimeout(() => input.focus(), 0);
+    }
+  });
+
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
+      if (!ui.saveName || !ui.saveName.trim()) {
+        ui.toast = 'Name cannot be blank';
+        setTimeout(() => ui.toast = null, 1400);
+        e.preventDefault();
+        return;
+      }
       saveScoreByName(ui.saveName || 'Player');
-      ui.panels.save = false;
       ui.inputActive = false;
       input.blur();
       e.preventDefault();
@@ -549,6 +595,7 @@ function ensureHiddenTextInput() {
       e.preventDefault();
     }
   });
+
   document.body.appendChild(input);
   ui.hiddenInput = input;
   return input;
@@ -559,16 +606,37 @@ function activateSaveNameInput() {
   ui.saveName = ui.saveName || '';
   const input = ensureHiddenTextInput();
   input.value = ui.saveName;
-  input.style.opacity = '1';
-  input.style.pointerEvents = 'auto';
-  input.style.zIndex = '10000';
-  input.focus({ preventScroll: true });
 
-  // Keep focus on input when name is being entered
-  const keepFocus = () => {
-    if (ui.inputActive && document.activeElement !== input) {
-      input.focus();
-    }
+  // Make input actually usable but keep it off-screen visually
+  input.style.visibility = 'visible';
+  input.style.clip = 'auto';
+  input.style.clipPath = 'none';
+  input.style.height = '44px';
+  input.style.width = '200px';
+  input.style.overflow = 'visible';
+  input.style.whiteSpace = 'normal';
+  input.style.position = 'fixed';
+  input.style.left = '10px';
+  input.style.top = '10px';
+  input.style.zIndex = '10001';
+  input.style.pointerEvents = 'auto';
+
+  // Focus immediately to trigger keyboard (don't move viewport)
+  input.focus();
+  input.select();
+
+  // Helper to cleanup input and restore hidden state
+  const cleanupInput = () => {
+    ui.inputActive = false;
+    input.style.visibility = 'hidden';
+    input.style.clip = 'rect(0,0,0,0)';
+    input.style.clipPath = 'inset(50%)';
+    input.style.height = '1px';
+    input.style.width = '1px';
+    input.style.overflow = 'hidden';
+    input.style.whiteSpace = 'nowrap';
+    input.style.pointerEvents = 'none';
+    input.blur();
   };
 
   // Add global keyboard handler for input
@@ -583,16 +651,10 @@ function activateSaveNameInput() {
         return;
       }
       saveScoreByName(ui.saveName || 'Player');
-      ui.inputActive = false;
-      input.style.opacity = '0';
-      input.style.pointerEvents = 'none';
-      input.blur();
+      cleanupInput();
       e.preventDefault();
     } else if (e.key === 'Escape') {
-      ui.inputActive = false;
-      input.style.opacity = '0';
-      input.style.pointerEvents = 'none';
-      input.blur();
+      cleanupInput();
       e.preventDefault();
     } else if (e.key.length === 1) {
       // Regular character input
@@ -670,6 +732,7 @@ function setupUI() {
   });
 
   canvas.addEventListener('pointerup', function(e) {
+    if (ui.inputActive) return;
     ui.holding = null;
     ui.holdFrames = 0;
   });
