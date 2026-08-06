@@ -65,6 +65,6 @@
 
   <!-- In-canvas UI will replace the DOM panels and buttons. vibhore-->
 
-<script src="script.js?v=<?= time() ?>" defer></script>
+<script type="module" src="src/main.js?v=<?= time() ?>"></script>
 </body>
 </html>
