@@ -135,7 +135,7 @@ export function renderCanvasControls(controlImgs) {
     }
   }
 
-  const bulletCountX = W - 470;
+  const bulletCountX = W - 450;
   const bulletCountY = H - 70;
   ctx.save();
   ctx.fillStyle = '#FFD700';
