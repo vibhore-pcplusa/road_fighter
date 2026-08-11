@@ -396,7 +396,7 @@ function handleCanvasPointer(x, y) {
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.leaders = false;
       ui.inputActive = false;
     }
@@ -408,7 +408,7 @@ function handleCanvasPointer(x, y) {
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.controls = false;
       ui.inputActive = false;
     }
@@ -435,7 +435,7 @@ function handleCanvasPointer(x, y) {
     const closeX = panelX + panelW - 34;
     const closeY = panelY + 24;
 
-    if (rectContains(closeX - 24, closeY - 24, 48, 48, x, y)) {
+    if (rectContains(closeX - 40, closeY - 40, 80, 80, x, y)) {
       resetToIdleScreen();
       return;
     }

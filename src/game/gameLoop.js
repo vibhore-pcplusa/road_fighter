@@ -36,6 +36,14 @@ export function resetToIdleScreen() {
   ui.saveName = '';
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
+  
+  if (ui.hiddenInput) {
+    ui.inputActive = false;
+    ui.hiddenInput.style.visibility = 'hidden';
+    ui.hiddenInput.style.clip = 'rect(0,0,0,0)';
+    ui.hiddenInput.style.pointerEvents = 'none';
+    ui.hiddenInput.blur();
+  }
 }
 
 export function startGame() {
