@@ -711,10 +711,15 @@ function setupUI() {
           ui.panels.controls = false;
         } else if (panel === 'share') {
           const shareUrl = 'https://play.google.com/store/apps/details?id=com.vibhorejain.road_fighter';
-          if (navigator.share) {
+          const shareText = 'Check out this awesome game!';
+          const shareTitle = 'Road Fighter';
+          
+          if (window.AndroidApp && window.AndroidApp.shareUrl) {
+            window.AndroidApp.shareUrl(shareTitle, shareText, shareUrl);
+          } else if (navigator.share) {
             navigator.share({
-              title: 'Road Fighter',
-              text: 'Check out this awesome game!',
+              title: shareTitle,
+              text: shareText,
               url: shareUrl
             }).catch(console.error);
           } else {
