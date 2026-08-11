@@ -697,7 +697,7 @@ function setupUI() {
     });
   }
 
-  // Quick menu action buttons (Help, Leaders)
+  // Quick menu action buttons (Help, Leaders, Share)
   if (quickMenu) {
     quickMenu.querySelectorAll('.quick-action').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
@@ -709,6 +709,17 @@ function setupUI() {
         } else if (panel === 'leaders') {
           ui.panels.leaders = !ui.panels.leaders;
           ui.panels.controls = false;
+        } else if (panel === 'share') {
+          const shareUrl = 'https://play.google.com/store/apps/details?id=com.vibhorejain.road_fighter';
+          if (navigator.share) {
+            navigator.share({
+              title: 'Road Fighter',
+              text: 'Check out this awesome game!',
+              url: shareUrl
+            }).catch(console.error);
+          } else {
+            window.open(shareUrl, '_blank');
+          }
         }
         quickMenu.classList.remove('open');
         settingsToggle.setAttribute('aria-expanded', 'false');
@@ -764,6 +775,13 @@ function resizeCanvas() {
   const scale = Math.min(window.innerWidth / gameWidth, window.innerHeight / gameHeight);
   canvas.style.width = `${gameWidth * scale}px`;
   canvas.style.height = `${gameHeight * scale}px`;
+
+  // Scale the gun overlay to follow the resolution of the canvas
+  const gunOverlay = document.getElementById('gunOverlay');
+  if (gunOverlay) {
+    gunOverlay.style.transformOrigin = 'bottom left';
+    gunOverlay.style.transform = `scale(${Math.max(1, scale * 1.5)})`;
+  }
 }
 
 window.addEventListener("resize", resizeCanvas);

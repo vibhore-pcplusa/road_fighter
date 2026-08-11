@@ -52,6 +52,7 @@
       <div id="quickMenu" class="quick-menu">
         <button class="quick-action" data-panel="controls" type="button">Help</button>
         <button class="quick-action" data-panel="leaders" type="button">Leaders</button>
+        <button class="quick-action" data-panel="share" type="button">Share</button>
       </div>
     </div>
     <canvas id="game" width="720" height="1200"></canvas> <!-- increased logical canvas default -->
