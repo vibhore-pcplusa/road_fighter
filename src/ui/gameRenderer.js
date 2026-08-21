@@ -35,8 +35,9 @@ export function renderGameObjects(images, trees, controlImgs) {
   const p = state.player;
   ctx.save();
   ctx.translate(p.x - p.width / 2, p.y);
-  if (images.mycar && images.mycar.complete && images.mycar.naturalWidth && images.mycar.naturalWidth > 0) {
-    ctx.drawImage(images.mycar, 0, 0, p.width, p.height);
+  const carImg = images[state.selectedCar] || images.mycar;
+  if (carImg && carImg.complete && carImg.naturalWidth && carImg.naturalWidth > 0) {
+    ctx.drawImage(carImg, 0, 0, p.width, p.height);
   } else {
     ctx.fillStyle = p.color;
     ctx.fillRect(0, 0, p.width, p.height);

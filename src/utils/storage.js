@@ -1,5 +1,8 @@
 const STORAGE_KEY = 'rf_leaders_v1';
+const STATS_KEY = 'rf_player_stats_v1';
+const INVENTORY_KEY = 'rf_player_inventory_v1';
 const MAX_LEADERS = 10;
+const MAX_LAST_RUNS = 5;
 
 export function loadLeadersFromStorage() {
   try {
@@ -34,4 +37,52 @@ export function addLeaderEntry(name, score, level) {
     return b.ts - a.ts;
   });
   return saveLeadersToStorage(list.slice(0, MAX_LEADERS)), list.slice(0, MAX_LEADERS);
+}
+
+export function loadPlayerStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (!raw) return { totalCoins: 0, lastRuns: [] };
+    const parsed = JSON.parse(raw);
+    return {
+      totalCoins: parsed.totalCoins || 0,
+      lastRuns: Array.isArray(parsed.lastRuns) ? parsed.lastRuns : []
+    };
+  } catch (e) {
+    return { totalCoins: 0, lastRuns: [] };
+  }
+}
+
+export function savePlayerStats(stats) {
+  try {
+    // limit to 5 runs
+    if (stats.lastRuns && stats.lastRuns.length > MAX_LAST_RUNS) {
+      stats.lastRuns = stats.lastRuns.slice(0, MAX_LAST_RUNS);
+    }
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  } catch (e) {
+    console.warn('Failed to save player stats', e);
+  }
+}
+
+export function loadInventory() {
+  try {
+    const raw = localStorage.getItem(INVENTORY_KEY);
+    if (!raw) return { unlockedCars: ['mycar'], selectedCar: 'mycar' };
+    const parsed = JSON.parse(raw);
+    return {
+      unlockedCars: Array.isArray(parsed.unlockedCars) ? parsed.unlockedCars : ['mycar'],
+      selectedCar: parsed.selectedCar || 'mycar'
+    };
+  } catch (e) {
+    return { unlockedCars: ['mycar'], selectedCar: 'mycar' };
+  }
+}
+
+export function saveInventory(inventory) {
+  try {
+    localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+  } catch (e) {
+    console.warn('Failed to save inventory', e);
+  }
 }
