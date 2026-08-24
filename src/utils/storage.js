@@ -2,7 +2,7 @@ const STORAGE_KEY = 'rf_leaders_v1';
 const STATS_KEY = 'rf_player_stats_v1';
 const INVENTORY_KEY = 'rf_player_inventory_v1';
 const MAX_LEADERS = 10;
-const MAX_LAST_RUNS = 5;
+const MAX_LAST_RUNS = 100;
 
 export function loadLeadersFromStorage() {
   try {

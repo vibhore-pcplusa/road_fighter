@@ -417,8 +417,8 @@ function handleCanvasPointer(x, y) {
   }
 
   if (ui.panels.stats) {
-    const w = 560, h = 550;
-    const sx = (W - w) / 2, sy = (H - h) / 2;
+    const w = 560, h = 660; // increased height
+    const sx = (W - w) / 2, sy = (H - h) / 2 - 100; // moved up
     const closeX = sx + w - 40;
     const closeY = sy + 16;
     if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
@@ -831,14 +831,52 @@ function setupUI() {
     }
   });
 
+  let isDraggingStats = false;
+  let lastTouchY = 0;
+
+  canvas.addEventListener('wheel', function(e) {
+    if (ui.panels.stats) {
+      ui.statsScrollY -= e.deltaY;
+      const listLength = state.lastRuns ? state.lastRuns.length : 0;
+      const rowHeight = 70;
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      e.preventDefault();
+    }
+  }, { passive: false });
+
   canvas.addEventListener('pointerdown', function(e) {
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    
+    if (ui.panels.stats) {
+      isDraggingStats = true;
+      lastTouchY = e.clientY;
+    }
+    
     handleCanvasPointer(x, y);
   });
 
+  canvas.addEventListener('pointermove', function(e) {
+    if (ui.panels.stats && isDraggingStats) {
+      const deltaY = e.clientY - lastTouchY;
+      // Scale deltaY to canvas coordinates approximately
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.height / rect.height;
+      
+      ui.statsScrollY += deltaY * scale;
+      const listLength = state.lastRuns ? state.lastRuns.length : 0;
+      const rowHeight = 70;
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      
+      lastTouchY = e.clientY;
+    }
+  });
+
   canvas.addEventListener('pointerup', function(e) {
+    isDraggingStats = false;
     if (ui.inputActive) return;
     ui.holding = null;
     ui.holdFrames = 0;

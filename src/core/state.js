@@ -48,7 +48,8 @@ export const ui = {
   startLabel: 'Running',
   saveName: '',
   _controlPos: null,
-  _resumeBtn: null
+  _resumeBtn: null,
+  statsScrollY: 0
 };
 
 export const gameConfig = {

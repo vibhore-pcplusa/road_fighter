@@ -1,6 +1,6 @@
 import { ctx, W, H } from '../core/constants.js';
 import { drawRoundedRect } from '../utils/helpers.js';
-import { state } from '../core/state.js';
+import { state, ui } from '../core/state.js';
 import { getImages } from '../assets/imageLoader.js';
 
 export function drawLeadersPanel() {
@@ -139,8 +139,9 @@ export function drawControlsPanel() {
 }
 
 export function drawStatsPanel() {
-  const w = 560, h = 550;
-  const x = (W - w) / 2, y = (H - h) / 2;
+  const w = 560, h = 660; // Increased height
+  const x = (W - w) / 2, y = (H - h) / 2 - 100; // Moved upside 100px
+  
   ctx.save();
   ctx.fillStyle = 'rgba(255, 165, 0, 0.95)';
   ctx.beginPath();
@@ -169,32 +170,72 @@ export function drawStatsPanel() {
 
   ctx.fillStyle = '#fff';
   ctx.font = '26px sans-serif';
-  ctx.fillText('Last 5 Runs:', x + 30, y + 150);
 
   const list = state.lastRuns || [];
+  
+  // Set up clipping region for the scrolling list
+  const listAreaY = y + 130;
+  const listAreaH = h - 150;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 16, listAreaY, w - 32, listAreaH);
+  ctx.clip();
+
   if (!list.length) {
     ctx.fillText('No recent runs.', x + 30, y + 200);
   } else {
-    const rowY = y + 180;
-    const rowHeight = 60;
-    for (let i = 0; i < list.length; i++) {
-      const run = list[i];
-      const rowTop = rowY + i * rowHeight;
-      if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(x + 18, rowTop - 11, w - 36, rowHeight);
+    const scrollOffset = ui.statsScrollY || 0;
+    let currentY = listAreaY + 10 + scrollOffset;
+    
+    const topRuns = [...list].sort((a, b) => b.score - a.score).slice(0, 5);
+    
+    const renderItems = [];
+    if (topRuns.length > 0) {
+      renderItems.push({ type: 'header', text: 'Top 5 Best Runs:' });
+      topRuns.forEach((r, idx) => renderItems.push({ type: 'run', run: r, index: idx }));
+    }
+    
+    if (list.length > 0) {
+      renderItems.push({ type: 'header', text: 'Recent History:' });
+      list.forEach((r, idx) => renderItems.push({ type: 'run', run: r, index: idx }));
+    }
+
+    for (let item of renderItems) {
+      const itemHeight = item.type === 'header' ? 40 : 70;
+      
+      if (currentY + itemHeight > listAreaY && currentY < listAreaY + listAreaH) {
+        if (item.type === 'header') {
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 24px sans-serif';
+          ctx.fillText(item.text, x + 30, currentY + 30);
+        } else {
+          const run = item.run;
+          const i = item.index;
+          if (i % 2 === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(x + 18, currentY, w - 36, itemHeight);
+          }
+          
+          ctx.fillStyle = '#fff';
+          ctx.font = '22px sans-serif';
+          
+          const date = new Date(run.date);
+          const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          const dateStr = date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+          
+          ctx.fillText(`${i+1}. Score: ${run.score}`, x + 30, currentY + 30);
+          ctx.fillText(`Dist: ${run.distance}m, Coins: ${run.coins}`, x + 30, currentY + 58);
+          
+          ctx.textAlign = 'right';
+          ctx.fillText(dateStr, x + w - 30, currentY + 30);
+          ctx.fillText(timeStr, x + w - 30, currentY + 58);
+          ctx.textAlign = 'left';
+        }
       }
-      ctx.fillStyle = '#fff';
-      ctx.font = '22px sans-serif';
-      
-      const date = new Date(run.date);
-      const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      
-      ctx.fillText(`${i+1}. Score: ${run.score}`, x + 30, rowTop + 25);
-      ctx.fillText(`Dist: ${run.distance}m, Coins: ${run.coins}`, x + 30, rowTop + 50);
-      ctx.fillText(timeStr, x + 440, rowTop + 38);
+      currentY += itemHeight;
     }
   }
+  ctx.restore(); // end clip
 
   const closeX = x + w - 40;
   const closeY = y + 16;
