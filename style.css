@@ -39,7 +39,7 @@ svg {
   align-items: flex-end;
   gap: 8px;
   z-index: 12;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .settings-toggle {
@@ -54,6 +54,7 @@ svg {
   box-shadow: 0 8px 20px rgba(0,0,0,0.34);
   backdrop-filter: blur(8px);
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .settings-toggle img {

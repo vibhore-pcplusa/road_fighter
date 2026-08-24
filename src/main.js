@@ -4,7 +4,7 @@ import { loadTreeImages, loadSprites, loadControlImages, getAllAssets, getTrees,
 import { playSound, stopAllActiveSounds, playBgMusic, stopBgMusic } from './audio/soundManager.js';
 import { collides, rectContains } from './utils/collision.js';
 import { clampSpeed, drawRoundedRect, $id, getSpeedKmh } from './utils/helpers.js';
-import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry } from './utils/storage.js';
+import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry, loadPlayerStats, savePlayerStats, loadInventory, saveInventory } from './utils/storage.js';
 import { createPlayer, moveLeft, moveRight, updatePlayerPosition } from './game/player.js';
 import { spawnObstacle, updateObstacles } from './game/obstacles.js';
 import { spawnCoin, updateCoins } from './game/coins.js';
@@ -14,7 +14,7 @@ import { addFloatingText, updateFloatingTexts } from './game/floatingText.js';
 import { resetToIdleScreen, startGame, togglePause, updateGameLogic } from './game/gameLoop.js';
 import { drawRoad, drawStartScreen, drawHUD, drawLoadingScreen, drawRotateToPortrait } from './ui/rendering.js';
 import { drawGameOverOverlay } from './ui/gameOverScreen.js';
-import { drawLeadersPanel, drawControlsPanel } from './ui/panels.js';
+import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel } from './ui/panels.js';
 import { renderGameObjects, renderCanvasControls, renderExplosion } from './ui/gameRenderer.js';
 
 let assetsReady = false;
@@ -223,6 +223,8 @@ function handleInput() {
 function drawTopmostPanels() {
   if (ui.panels.leaders) drawLeadersPanel();
   if (ui.panels.controls) drawControlsPanel();
+  if (ui.panels.stats) drawStatsPanel();
+  if (ui.panels.shop) drawShopPanel();
 }
 
 function loop() {
@@ -357,6 +359,17 @@ function evaluateHighScore() {
 function prepareGameOverState() {
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
+  
+  // Save coins and run stats
+  state.totalCoins += state.scoreFromCoins;
+  state.lastRuns.unshift({
+    score: state.score,
+    distance: Math.floor(state.distance),
+    coins: state.scoreFromCoins,
+    date: Date.now()
+  });
+  savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+  
   evaluateHighScore();
   fetchLeaders().then(() => evaluateHighScore()).catch(() => {});
 }
@@ -396,9 +409,73 @@ function handleCanvasPointer(x, y) {
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.leaders = false;
       ui.inputActive = false;
+    }
+    return;
+  }
+
+  if (ui.panels.stats) {
+    const w = 560, h = 660; // increased height
+    const sx = (W - w) / 2, sy = (H - h) / 2 - 100; // moved up
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.stats = false;
+      ui.inputActive = false;
+    }
+    return;
+  }
+
+  if (ui.panels.shop) {
+    const w = 600, h = 550;
+    const sx = (W - w) / 2, sy = (H - h) / 2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y)) {
+      ui.panels.shop = false;
+      ui.inputActive = false;
+      return;
+    }
+    if (!rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.shop = false;
+      ui.inputActive = false;
+      return;
+    }
+    
+    // Check shop interactions
+    const cars = [
+      { id: 'mycar', price: 0 },
+      { id: 'red', price: 5000 },
+      { id: 'blue', price: 15000 },
+      { id: 'green', price: 50000 }
+    ];
+    const itemHeight = 100;
+    const startY = sy + 120;
+    for (let i = 0; i < cars.length; i++) {
+      const car = cars[i];
+      const itemY = startY + i * itemHeight;
+      const btnW = 140, btnH = 46;
+      const btnX = sx + w - 30 - btnW;
+      const btnY = itemY + 27;
+      
+      if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
+        if (state.unlockedCars.includes(car.id)) {
+          state.selectedCar = car.id;
+          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar });
+        } else if (state.totalCoins >= car.price) {
+          state.totalCoins -= car.price;
+          state.unlockedCars.push(car.id);
+          state.selectedCar = car.id;
+          savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar });
+        } else {
+          ui.toast = 'Not enough coins!';
+          setTimeout(() => ui.toast = null, 1500);
+        }
+        return;
+      }
     }
     return;
   }
@@ -408,7 +485,7 @@ function handleCanvasPointer(x, y) {
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
-    if (rectContains(closeX - 16, closeY - 16, 32, 32, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.controls = false;
       ui.inputActive = false;
     }
@@ -435,7 +512,7 @@ function handleCanvasPointer(x, y) {
     const closeX = panelX + panelW - 34;
     const closeY = panelY + 24;
 
-    if (rectContains(closeX - 24, closeY - 24, 48, 48, x, y)) {
+    if (rectContains(closeX - 40, closeY - 40, 80, 80, x, y)) {
       resetToIdleScreen();
       return;
     }
@@ -706,15 +783,34 @@ function setupUI() {
         if (panel === 'controls') {
           ui.panels.controls = !ui.panels.controls;
           ui.panels.leaders = false;
+          ui.panels.stats = false;
+          ui.panels.shop = false;
         } else if (panel === 'leaders') {
           ui.panels.leaders = !ui.panels.leaders;
           ui.panels.controls = false;
+          ui.panels.stats = false;
+          ui.panels.shop = false;
+        } else if (panel === 'stats') {
+          ui.panels.stats = !ui.panels.stats;
+          ui.panels.controls = false;
+          ui.panels.leaders = false;
+          ui.panels.shop = false;
+        } else if (panel === 'shop') {
+          ui.panels.shop = !ui.panels.shop;
+          ui.panels.controls = false;
+          ui.panels.leaders = false;
+          ui.panels.stats = false;
         } else if (panel === 'share') {
           const shareUrl = 'https://play.google.com/store/apps/details?id=com.vibhorejain.road_fighter';
-          if (navigator.share) {
+          const shareText = 'Check out this awesome game!';
+          const shareTitle = 'Road Fighter';
+          
+          if (window.AndroidApp && window.AndroidApp.shareUrl) {
+            window.AndroidApp.shareUrl(shareTitle, shareText, shareUrl);
+          } else if (navigator.share) {
             navigator.share({
-              title: 'Road Fighter',
-              text: 'Check out this awesome game!',
+              title: shareTitle,
+              text: shareText,
               url: shareUrl
             }).catch(console.error);
           } else {
@@ -735,14 +831,52 @@ function setupUI() {
     }
   });
 
+  let isDraggingStats = false;
+  let lastTouchY = 0;
+
+  canvas.addEventListener('wheel', function(e) {
+    if (ui.panels.stats) {
+      ui.statsScrollY -= e.deltaY;
+      const listLength = state.lastRuns ? state.lastRuns.length : 0;
+      const rowHeight = 70;
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      e.preventDefault();
+    }
+  }, { passive: false });
+
   canvas.addEventListener('pointerdown', function(e) {
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    
+    if (ui.panels.stats) {
+      isDraggingStats = true;
+      lastTouchY = e.clientY;
+    }
+    
     handleCanvasPointer(x, y);
   });
 
+  canvas.addEventListener('pointermove', function(e) {
+    if (ui.panels.stats && isDraggingStats) {
+      const deltaY = e.clientY - lastTouchY;
+      // Scale deltaY to canvas coordinates approximately
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.height / rect.height;
+      
+      ui.statsScrollY += deltaY * scale;
+      const listLength = state.lastRuns ? state.lastRuns.length : 0;
+      const rowHeight = 70;
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      
+      lastTouchY = e.clientY;
+    }
+  });
+
   canvas.addEventListener('pointerup', function(e) {
+    isDraggingStats = false;
     if (ui.inputActive) return;
     ui.holding = null;
     ui.holdFrames = 0;
@@ -754,6 +888,14 @@ window.togglePause = togglePause;
 
 preloadAssets().then(() => {
   setTimeout(function() {
+    const stats = loadPlayerStats();
+    state.totalCoins = stats.totalCoins;
+    state.lastRuns = stats.lastRuns;
+    
+    const inv = loadInventory();
+    state.unlockedCars = inv.unlockedCars;
+    state.selectedCar = inv.selectedCar;
+    
     setupUI();
     fetchLeaders();
   }, 180);

@@ -13,10 +13,22 @@ export function renderGameObjects(images, trees, controlImgs) {
     ctx.save();
     ctx.translate(o.x - o.width / 2, o.y);
     if (o.type === "car") {
-      const carChoices = [images.red, images.blue, images.green];
-      const img = carChoices[o.lane % carChoices.length];
+      const fallbackColors = ['red', 'blue', 'green'];
+      const cType = o.carColor || fallbackColors[o.lane % fallbackColors.length];
+
+      let img;
+      let applyFilter = false;
+      if (cType === 'yellow') {
+        img = images.red;
+        applyFilter = true;
+      } else {
+        img = images[cType];
+      }
+
       if (img && img.complete && img.naturalWidth && img.naturalWidth > 0) {
+        if (applyFilter) ctx.filter = 'hue-rotate(60deg)';
         ctx.drawImage(img, 0, 0, o.width, o.height);
+        if (applyFilter) ctx.filter = 'none';
       } else {
         ctx.fillStyle = o.color;
         ctx.fillRect(0, 0, o.width, o.height);
@@ -35,8 +47,16 @@ export function renderGameObjects(images, trees, controlImgs) {
   const p = state.player;
   ctx.save();
   ctx.translate(p.x - p.width / 2, p.y);
-  if (images.mycar && images.mycar.complete && images.mycar.naturalWidth && images.mycar.naturalWidth > 0) {
-    ctx.drawImage(images.mycar, 0, 0, p.width, p.height);
+
+  if (state.selectedCar === 'green' || state.selectedCar === 'blue') {
+    ctx.translate(p.width / 2, p.height / 2);
+    ctx.rotate(Math.PI);
+    ctx.translate(-p.width / 2, -p.height / 2);
+  }
+
+  const carImg = images[state.selectedCar] || images.mycar;
+  if (carImg && carImg.complete && carImg.naturalWidth && carImg.naturalWidth > 0) {
+    ctx.drawImage(carImg, 0, 0, p.width, p.height);
   } else {
     ctx.fillStyle = p.color;
     ctx.fillRect(0, 0, p.width, p.height);
@@ -135,7 +155,7 @@ export function renderCanvasControls(controlImgs) {
     }
   }
 
-  const bulletCountX = W - 470;
+  const bulletCountX = W - 450;
   const bulletCountY = H - 70;
   ctx.save();
   ctx.fillStyle = '#FFD700';
@@ -164,12 +184,12 @@ export function renderCanvasControls(controlImgs) {
 export function renderExplosion() {
   if (!state.explosion) return;
   const elapsed = Date.now() - state.explosion.start;
-  if (elapsed >= 10000) {
+  if (elapsed >= 3500) {
     state.explosion = null;
     return;
   }
 
-  const progress = elapsed / 10000;
+  const progress = elapsed / 3500;
   const size = 80 + progress * 60;
   const alpha = 1 - progress;
   const ex = state.explosion.x || W / 2;

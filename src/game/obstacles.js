@@ -17,6 +17,9 @@ export function spawnObstacle(state) {
     return;
   }
 
+  const carColors = ['red', 'blue', 'green', 'yellow'];
+  const carColor = type === 'car' ? carColors[Math.floor(Math.random() * carColors.length)] : null;
+
   const obj = {
     lane,
     x: lanes[lane],
@@ -25,7 +28,8 @@ export function spawnObstacle(state) {
     height: h,
     speed: state.speed,
     type,
-    color: type === 'car' ? "#cc3333" : "#444"
+    color: type === 'car' ? (carColor === 'yellow' ? '#ffcc00' : "#cc3333") : "#444",
+    carColor
   };
 
   state.obstacles.push(obj);

@@ -22,12 +22,16 @@ export const state = {
   maxSpeed: 12,
   explosion: null,
   leaders: [],
-  scoreFromCoins: 0
+  scoreFromCoins: 0,
+  totalCoins: 0,
+  unlockedCars: ['mycar'],
+  selectedCar: 'mycar',
+  lastRuns: []
 };
 
 export const ui = {
   pauseLabel: 'Pause',
-  panels: { save: false, leaders: false, controls: false },
+  panels: { save: false, leaders: false, controls: false, stats: false, shop: false },
   toast: null,
   touchVisible: false,
   saveMessage: '',
@@ -44,7 +48,8 @@ export const ui = {
   startLabel: 'Running',
   saveName: '',
   _controlPos: null,
-  _resumeBtn: null
+  _resumeBtn: null,
+  statsScrollY: 0
 };
 
 export const gameConfig = {
