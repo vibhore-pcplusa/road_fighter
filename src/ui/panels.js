@@ -196,7 +196,7 @@ export function drawStatsPanel() {
     }
     
     if (list.length > 0) {
-      renderItems.push({ type: 'header', text: 'Recent History:' });
+      renderItems.push({ type: 'header', text: 'Recent History (Last 100 games):' });
       list.forEach((r, idx) => renderItems.push({ type: 'run', run: r, index: idx }));
     }
 
