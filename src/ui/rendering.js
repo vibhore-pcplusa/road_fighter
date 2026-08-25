@@ -95,7 +95,7 @@ export function drawHUD() {
   ctx.fillText("Speed: " + getSpeedKmh(state.speed) + " km/h", W / 2, 30);
 
   ctx.textAlign = "right";
-  ctx.fillText("Score: " + state.score, W - 130, 30);
+  ctx.fillText("Score: " + state.score, W - 70, 30);
   ctx.restore();
 }
 

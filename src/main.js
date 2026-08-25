@@ -377,6 +377,18 @@ function prepareGameOverState() {
   });
   savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
   
+  // AdMob Interstitial Ad logic
+  let adCounter = parseInt(localStorage.getItem('adGameOverCounter') || '0', 10);
+  adCounter++;
+  
+  if (adCounter >= 4) {
+    if (window.AndroidApp && typeof window.AndroidApp.showInterstitialAd === 'function') {
+      window.AndroidApp.showInterstitialAd();
+    }
+    adCounter = 0; // Reset after showing ad
+  }
+  localStorage.setItem('adGameOverCounter', adCounter.toString());
+  
   evaluateHighScore();
   fetchLeaders().then(() => evaluateHighScore()).catch(() => {});
 }

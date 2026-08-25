@@ -92,13 +92,13 @@ export function renderGameObjects(images, trees, controlImgs) {
     ctx.beginPath();
     ctx.arc(a.x, a.y, a.width / 2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.fillStyle = '#000';
     ctx.shadowBlur = 0;
-    ctx.font = '30px Arial';
+    ctx.font = '60px Arial'; // Doubled size of the gun
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🔫', a.x, a.y);
+    ctx.fillText('🔫', a.x, a.y + 6); // Shifted slightly down for better vertical centering
     ctx.restore();
   }
 
