@@ -84,6 +84,24 @@ export function renderGameObjects(images, trees, controlImgs) {
     ctx.restore();
   }
 
+  for (const a of state.ammos || []) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.8)'; // Golden circle
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, a.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#000';
+    ctx.shadowBlur = 0;
+    ctx.font = '30px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔫', a.x, a.y);
+    ctx.restore();
+  }
+
   for (const t of state.floatingTexts) {
     const elapsed = Date.now() - t.startTime;
     const progress = elapsed / t.duration;
@@ -163,7 +181,7 @@ export function renderCanvasControls(controlImgs) {
   ctx.textAlign = 'center';
   ctx.shadowColor = '#FF9900';
   ctx.shadowBlur = 12;
-  ctx.fillText(state.bulletsRemaining + '/' + 10, bulletCountX, bulletCountY);
+  ctx.fillText(state.bulletsRemaining + '/' + ((state.gunLevel || 1) * 10), bulletCountX, bulletCountY);
   ctx.restore();
 
   if (state.paused && state.running) {

@@ -68,14 +68,15 @@ export function savePlayerStats(stats) {
 export function loadInventory() {
   try {
     const raw = localStorage.getItem(INVENTORY_KEY);
-    if (!raw) return { unlockedCars: ['mycar'], selectedCar: 'mycar' };
+    if (!raw) return { unlockedCars: ['mycar'], selectedCar: 'mycar', gunLevel: 1 };
     const parsed = JSON.parse(raw);
     return {
       unlockedCars: Array.isArray(parsed.unlockedCars) ? parsed.unlockedCars : ['mycar'],
-      selectedCar: parsed.selectedCar || 'mycar'
+      selectedCar: parsed.selectedCar || 'mycar',
+      gunLevel: parseInt(parsed.gunLevel) || 1
     };
   } catch (e) {
-    return { unlockedCars: ['mycar'], selectedCar: 'mycar' };
+    return { unlockedCars: ['mycar'], selectedCar: 'mycar', gunLevel: 1 };
   }
 }
 

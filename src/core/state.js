@@ -1,10 +1,11 @@
-const MAX_BULLETS = 10;
+// Dynamic max bullets calculated via state.gunLevel * 10
 
 export const state = {
   running: false,
   paused: false,
   score: 0,
   distance: 0,
+  lastAmmoDistance: 0,
   level: 1,
   speed: 3,
   speedTarget: 3,
@@ -12,7 +13,8 @@ export const state = {
   spawnInterval: 90,
   obstacles: [],
   bullets: [],
-  bulletsRemaining: MAX_BULLETS,
+  ammos: [],
+  bulletsRemaining: 10,
   coins: [],
   floatingTexts: [],
   trees: [],
@@ -26,6 +28,7 @@ export const state = {
   totalCoins: 0,
   unlockedCars: ['mycar'],
   selectedCar: 'mycar',
+  gunLevel: 1,
   lastRuns: []
 };
 
@@ -53,7 +56,6 @@ export const ui = {
 };
 
 export const gameConfig = {
-  MAX_BULLETS,
   MIN_REVERSE_SPEED: 0,
   GUN_COOLDOWN_FRAMES: 15,
   COIN_COLORS: {

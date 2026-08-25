@@ -249,12 +249,10 @@ export function drawStatsPanel() {
   ctx.textAlign = 'center';
   ctx.fillText('X', closeX, closeY + 8);
   ctx.restore();
-
-  ctx.restore();
 }
 
 export function drawShopPanel() {
-  const w = 600, h = 550;
+  const w = 560, h = 660;
   const x = (W - w) / 2, y = (H - h) / 2;
   ctx.save();
   ctx.fillStyle = 'rgba(50, 150, 50, 0.95)';
@@ -362,6 +360,43 @@ export function drawShopPanel() {
       ctx.fillText('Buy', btnX + btnW/2, btnY + 30);
     }
   }
+
+  // Draw Gun Upgrade
+  const i = cars.length;
+  const gunItemY = startY + i * itemHeight;
+  if (i % 2 === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(x + 16, gunItemY, w - 32, itemHeight);
+  }
+
+  ctx.fillStyle = '#27ae60';
+  ctx.fillRect(x + 40, gunItemY + 20, 40, 60);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('AMMO', x + 60, gunItemY + 50);
+
+  const lvl = state.gunLevel || 1;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Gun Upgrade (Lv ' + lvl + ')', x + 120, gunItemY + 45);
+
+  const upgradeCost = 10000 * Math.pow(2, lvl - 1);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = '20px sans-serif';
+  ctx.fillText(upgradeCost + ' Coins (+10 Max)', x + 120, gunItemY + 75);
+
+  const uBtnW = 140, uBtnH = 46;
+  const uBtnX = x + w - 30 - uBtnW;
+  const uBtnY = gunItemY + 27;
+
+  ctx.fillStyle = state.totalCoins >= upgradeCost ? '#9C27B0' : '#d32f2f'; // Purple for upgrade
+  drawRoundedRect(ctx, uBtnX, uBtnY, uBtnW, uBtnH, 8);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Upgrade', uBtnX + uBtnW / 2, uBtnY + 30);
 
   const closeX = x + w - 40;
   const closeY = y + 16;
