@@ -76,6 +76,9 @@
       <p id="rpsTotalCoins" style="font-weight: bold; font-size: 18px; color: #333; margin-top: 5px;">Coins: 0</p>
     </div>
 
+    <!-- RPS Toast Notification -->
+    <div id="rpsToast" class="rps-toast hidden"></div>
+
     <!-- Bet Selection Screen -->
     <div id="rpsBetSelection" class="rps-bet-selection">
       <h3>Select Your Bet</h3>

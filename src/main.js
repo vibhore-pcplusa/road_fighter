@@ -1070,6 +1070,19 @@ resizeCanvas();
 
 let currentRPSBet = 0;
 
+function showRPSToast(msg, isError = false) {
+  const el = document.getElementById('rpsToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  el.style.color = isError ? 'red' : '#333';
+  
+  if (el.timeoutId) clearTimeout(el.timeoutId);
+  el.timeoutId = setTimeout(() => {
+    el.classList.add('hidden');
+  }, 2500);
+}
+
 window.openRPSGame = function () {
   const overlay = document.getElementById('rpsOverlay');
   const betSelection = document.getElementById('rpsBetSelection');
@@ -1106,8 +1119,7 @@ window.openRPSGame = function () {
 
       const bet = parseInt(e.target.getAttribute('data-bet'));
       if (state.totalCoins < bet) {
-        ui.toast = 'Error: Not enough coins!';
-        setTimeout(() => { ui.toast = null; }, 2000);
+        showRPSToast('Not enough coins!', true);
         document.querySelectorAll('.rps-bet-btn').forEach(b => b.disabled = false);
         return;
       }
@@ -1139,9 +1151,7 @@ window.openRPSGame = function () {
 
   playAgainBtn.onclick = () => {
     if (!canPlayRPS()) {
-      ui.toast = 'Daily limit reached! Come back tomorrow.';
-      setTimeout(() => { ui.toast = null; }, 2500);
-      overlay.classList.add('hidden');
+      showRPSToast('Daily limit reached! Come back tomorrow.', true);
       return;
     }
     window.openRPSGame();
