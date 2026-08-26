@@ -167,9 +167,9 @@ function update() {
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
-  
-  if (state.distance >= state.lastAmmoDistance + 100) {
-    state.lastAmmoDistance += 100;
+
+  if (state.distance >= state.lastAmmoDistance + 200) {
+    state.lastAmmoDistance += 200;
     spawnAmmo(state);
   }
 
@@ -285,7 +285,7 @@ function preloadAssets(options) {
   }
 
   let loadedImages = 0;
-  const markImageLoaded = function() {
+  const markImageLoaded = function () {
     loadedImages++;
     _assetsProgress = Math.round(loadedImages / totalImages * 100);
     if (_assetsProgress > 100) _assetsProgress = 100;
@@ -294,7 +294,7 @@ function preloadAssets(options) {
   return new Promise((resolve) => {
     let finished = false;
     const failedImages = [];
-    const tryFinish = function() {
+    const tryFinish = function () {
       if (finished) return;
       if (loadedImages >= totalImages) {
         finished = true;
@@ -304,7 +304,7 @@ function preloadAssets(options) {
       }
     };
 
-    imgs.forEach(function(img) {
+    imgs.forEach(function (img) {
       if (!img) {
         markImageLoaded();
         tryFinish();
@@ -315,7 +315,7 @@ function preloadAssets(options) {
         tryFinish();
         return;
       }
-      const onl = function() {
+      const onl = function () {
         if (img.naturalWidth && img.naturalWidth > 0) {
           img.removeEventListener('load', onl);
           img.removeEventListener('error', one);
@@ -325,7 +325,7 @@ function preloadAssets(options) {
           one();
         }
       };
-      const one = function() {
+      const one = function () {
         img.removeEventListener('load', onl);
         img.removeEventListener('error', one);
         failedImages.push(img && img.src);
@@ -337,10 +337,10 @@ function preloadAssets(options) {
       img.addEventListener('error', one);
       try {
         if (!img.src) img.src = img.getAttribute && img.getAttribute('data-src') || img.src || '';
-      } catch (e) {}
+      } catch (e) { }
     });
 
-    setTimeout(function() {
+    setTimeout(function () {
       if (finished) return;
       _assetsLoadingStuck = true;
       _assetsProgress = Math.round(loadedImages / totalImages * 100);
@@ -366,7 +366,7 @@ function evaluateHighScore() {
 function prepareGameOverState() {
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
-  
+
   // Save coins and run stats
   state.totalCoins += state.scoreFromCoins;
   state.lastRuns.unshift({
@@ -376,11 +376,11 @@ function prepareGameOverState() {
     date: Date.now()
   });
   savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
-  
+
   // AdMob Interstitial Ad logic
   let adCounter = parseInt(localStorage.getItem('adGameOverCounter') || '0', 10);
   adCounter++;
-  
+
   if (adCounter >= 4) {
     if (window.AndroidApp && typeof window.AndroidApp.showInterstitialAd === 'function') {
       window.AndroidApp.showInterstitialAd();
@@ -388,9 +388,9 @@ function prepareGameOverState() {
     adCounter = 0; // Reset after showing ad
   }
   localStorage.setItem('adGameOverCounter', adCounter.toString());
-  
+
   evaluateHighScore();
-  fetchLeaders().then(() => evaluateHighScore()).catch(() => {});
+  fetchLeaders().then(() => evaluateHighScore()).catch(() => { });
 }
 
 function saveScoreByName(name) {
@@ -462,7 +462,7 @@ function handleCanvasPointer(x, y) {
       ui.inputActive = false;
       return;
     }
-    
+
     // Check shop interactions
     const cars = [
       { id: 'mycar', price: 0 },
@@ -478,7 +478,7 @@ function handleCanvasPointer(x, y) {
       const btnW = 140, btnH = 46;
       const btnX = sx + w - 30 - btnW;
       const btnY = itemY + 27;
-      
+
       if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
         if (state.unlockedCars.includes(car.id)) {
           state.selectedCar = car.id;
@@ -684,18 +684,18 @@ function ensureHiddenTextInput() {
   input.style.overflow = 'hidden';
   input.style.whiteSpace = 'nowrap';
 
-  input.addEventListener('input', function() {
+  input.addEventListener('input', function () {
     ui.saveName = input.value.trimStart();
   });
 
-  input.addEventListener('blur', function() {
+  input.addEventListener('blur', function () {
     // Refocus if still inputActive
     if (ui.inputActive) {
       setTimeout(() => input.focus(), 0);
     }
   });
 
-  input.addEventListener('keydown', function(e) {
+  input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       if (!ui.saveName || !ui.saveName.trim()) {
         ui.toast = 'Name cannot be blank';
@@ -805,7 +805,7 @@ function setupUI() {
   // Gun button
   const gunToggle = document.getElementById('gunToggle');
   if (gunToggle) {
-    gunToggle.addEventListener('click', function(e) {
+    gunToggle.addEventListener('click', function (e) {
       e.stopPropagation();
       shootBullet(state, ui);
     });
@@ -815,7 +815,7 @@ function setupUI() {
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
   if (settingsToggle) {
-    settingsToggle.addEventListener('click', function(e) {
+    settingsToggle.addEventListener('click', function (e) {
       e.stopPropagation();
       const isOpen = quickMenu.classList.toggle('open');
       settingsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -824,8 +824,8 @@ function setupUI() {
 
   // Quick menu action buttons (Help, Leaders, Share)
   if (quickMenu) {
-    quickMenu.querySelectorAll('.quick-action').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
+    quickMenu.querySelectorAll('.quick-action').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
         e.stopPropagation();
         const panel = btn.getAttribute('data-panel');
         if (panel === 'controls') {
@@ -852,7 +852,7 @@ function setupUI() {
           const shareUrl = 'https://play.google.com/store/apps/details?id=com.vibhorejain.road_fighter';
           const shareText = 'Check out this awesome game!';
           const shareTitle = 'Road Fighter';
-          
+
           if (window.AndroidApp && window.AndroidApp.shareUrl) {
             window.AndroidApp.shareUrl(shareTitle, shareText, shareUrl);
           } else if (navigator.share) {
@@ -872,7 +872,7 @@ function setupUI() {
   }
 
   // Close menu when clicking outside
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     if (!e.target.closest('.hud-overlay') && quickMenu) {
       quickMenu.classList.remove('open');
       if (settingsToggle) settingsToggle.setAttribute('aria-expanded', 'false');
@@ -882,48 +882,48 @@ function setupUI() {
   let isDraggingStats = false;
   let lastTouchY = 0;
 
-  canvas.addEventListener('wheel', function(e) {
+  canvas.addEventListener('wheel', function (e) {
     if (ui.panels.stats) {
       ui.statsScrollY -= e.deltaY;
       const listLength = state.lastRuns ? state.lastRuns.length : 0;
       const rowHeight = 70;
-      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
       ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
       e.preventDefault();
     }
   }, { passive: false });
 
-  canvas.addEventListener('pointerdown', function(e) {
+  canvas.addEventListener('pointerdown', function (e) {
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-    
+
     if (ui.panels.stats) {
       isDraggingStats = true;
       lastTouchY = e.clientY;
     }
-    
+
     handleCanvasPointer(x, y);
   });
 
-  canvas.addEventListener('pointermove', function(e) {
+  canvas.addEventListener('pointermove', function (e) {
     if (ui.panels.stats && isDraggingStats) {
       const deltaY = e.clientY - lastTouchY;
       // Scale deltaY to canvas coordinates approximately
       const rect = canvas.getBoundingClientRect();
       const scale = canvas.height / rect.height;
-      
+
       ui.statsScrollY += deltaY * scale;
       const listLength = state.lastRuns ? state.lastRuns.length : 0;
       const rowHeight = 70;
-      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
       ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
-      
+
       lastTouchY = e.clientY;
     }
   });
 
-  canvas.addEventListener('pointerup', function(e) {
+  canvas.addEventListener('pointerup', function (e) {
     isDraggingStats = false;
     if (ui.inputActive) return;
     ui.holding = null;
@@ -935,17 +935,17 @@ window.startGame = startGame;
 window.togglePause = togglePause;
 
 preloadAssets().then(() => {
-  setTimeout(function() {
+  setTimeout(function () {
     const stats = loadPlayerStats();
     state.totalCoins = stats.totalCoins;
     state.lastRuns = stats.lastRuns;
-    
+
     const inv = loadInventory();
     state.unlockedCars = inv.unlockedCars;
     state.selectedCar = inv.selectedCar;
     state.gunLevel = inv.gunLevel || 1;
     state.bulletsRemaining = state.gunLevel * 10;
-    
+
     setupUI();
     fetchLeaders();
   }, 180);
