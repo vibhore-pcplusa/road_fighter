@@ -145,6 +145,7 @@ canvas {
   object-fit: cover;
   transform-origin: top left;
   margin-top: 40px;
+  touch-action: none; /* Crucial for smooth native-like dragging */
 }
 
 /* Visual canvas scale on wide screens to make cars appear larger */

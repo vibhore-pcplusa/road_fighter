@@ -8,10 +8,10 @@ import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry, loadPlaye
 import { createPlayer, moveLeft, moveRight, updatePlayerPosition } from './game/player.js';
 import { spawnObstacle, updateObstacles } from './game/obstacles.js';
 import { spawnCoin, updateCoins } from './game/coins.js';
-import { shootBullet, updateBullets } from './game/bullets.js';
+import { shootBullet, updateBullets, spawnAmmo, updateAmmo } from './game/bullets.js';
 import { spawnTree, updateTrees } from './game/trees.js';
 import { addFloatingText, updateFloatingTexts } from './game/floatingText.js';
-import { resetToIdleScreen, startGame, togglePause, updateGameLogic } from './game/gameLoop.js';
+import { resetToIdleScreen, startGame, togglePause } from './game/gameLoop.js';
 import { drawRoad, drawStartScreen, drawHUD, drawLoadingScreen, drawRotateToPortrait } from './ui/rendering.js';
 import { drawGameOverOverlay } from './ui/gameOverScreen.js';
 import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel } from './ui/panels.js';
@@ -163,9 +163,16 @@ function update() {
   updateTrees(state);
   updateCoins(state, collides);
   updateBullets(state);
+  updateAmmo(state, collides);
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
+  
+  if (state.distance >= state.lastAmmoDistance + 100) {
+    state.lastAmmoDistance += 100;
+    spawnAmmo(state);
+  }
+
   const distanceScore = Math.floor(state.distance);
   if (!state.scoreFromCoins) state.scoreFromCoins = 0;
   state.score = distanceScore + state.scoreFromCoins;
@@ -370,6 +377,18 @@ function prepareGameOverState() {
   });
   savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
   
+  // AdMob Interstitial Ad logic
+  let adCounter = parseInt(localStorage.getItem('adGameOverCounter') || '0', 10);
+  adCounter++;
+  
+  if (adCounter >= 4) {
+    if (window.AndroidApp && typeof window.AndroidApp.showInterstitialAd === 'function') {
+      window.AndroidApp.showInterstitialAd();
+    }
+    adCounter = 0; // Reset after showing ad
+  }
+  localStorage.setItem('adGameOverCounter', adCounter.toString());
+  
   evaluateHighScore();
   fetchLeaders().then(() => evaluateHighScore()).catch(() => {});
 }
@@ -429,7 +448,7 @@ function handleCanvasPointer(x, y) {
   }
 
   if (ui.panels.shop) {
-    const w = 600, h = 550;
+    const w = 560, h = 660; // Fixed to match panels.js rendering
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
@@ -463,13 +482,13 @@ function handleCanvasPointer(x, y) {
       if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
         if (state.unlockedCars.includes(car.id)) {
           state.selectedCar = car.id;
-          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar });
+          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
         } else if (state.totalCoins >= car.price) {
           state.totalCoins -= car.price;
           state.unlockedCars.push(car.id);
           state.selectedCar = car.id;
           savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
-          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar });
+          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
         } else {
           ui.toast = 'Not enough coins!';
           setTimeout(() => ui.toast = null, 1500);
@@ -477,6 +496,28 @@ function handleCanvasPointer(x, y) {
         return;
       }
     }
+
+    const i = cars.length;
+    const gunItemY = startY + i * itemHeight;
+    const uBtnW = 140, uBtnH = 46;
+    const uBtnX = sx + w - 30 - uBtnW;
+    const uBtnY = gunItemY + 27;
+
+    if (rectContains(uBtnX, uBtnY, uBtnW, uBtnH, x, y)) {
+      const lvl = state.gunLevel || 1;
+      const upgradeCost = 10000 * Math.pow(2, lvl - 1);
+      if (state.totalCoins >= upgradeCost) {
+        state.totalCoins -= upgradeCost;
+        state.gunLevel = lvl + 1;
+        savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+        saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
+      } else {
+        ui.toast = 'Not enough coins!';
+        setTimeout(() => ui.toast = null, 1500);
+      }
+      return;
+    }
+
     return;
   }
 
@@ -754,6 +795,13 @@ function activateSaveNameInput() {
 }
 
 function setupUI() {
+  // Add a generic click sound to all UI buttons
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.id !== 'gunToggle') playSound('pause');
+    });
+  });
+
   // Gun button
   const gunToggle = document.getElementById('gunToggle');
   if (gunToggle) {
@@ -895,6 +943,8 @@ preloadAssets().then(() => {
     const inv = loadInventory();
     state.unlockedCars = inv.unlockedCars;
     state.selectedCar = inv.selectedCar;
+    state.gunLevel = inv.gunLevel || 1;
+    state.bulletsRemaining = state.gunLevel * 10;
     
     setupUI();
     fetchLeaders();

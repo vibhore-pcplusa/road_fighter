@@ -87,13 +87,15 @@ export function drawHUD() {
   ctx.fillStyle = "yellow";
   ctx.font = "30px Arial";
   ctx.textAlign = "left";
-  ctx.fillText("Level: " + state.level, 100, 30);
+  ctx.fillText("Lv: " + state.level, 10, 30);
+
+  ctx.fillText("Dist: " + Math.floor(state.distance) + "m", 87, 30);
 
   ctx.textAlign = "center";
   ctx.fillText("Speed: " + getSpeedKmh(state.speed) + " km/h", W / 2, 30);
 
   ctx.textAlign = "right";
-  ctx.fillText("Score: " + state.score, W - 80, 30);
+  ctx.fillText("Score: " + state.score, W - 70, 30);
   ctx.restore();
 }
 

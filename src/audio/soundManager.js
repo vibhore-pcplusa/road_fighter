@@ -4,12 +4,14 @@ const sounds = {
   move: new Audio("assets/sounds/move.mp3"),
   crash: new Audio("assets/sounds/crash.mp3"),
   pause: new Audio("assets/sounds/pause.mp3"),
-  bg: new Audio("assets/sounds/bg_music.mp3")
+  bg: new Audio("assets/sounds/bg_music.mp3"),
+  shoot: new Audio("assets/sounds/shoot.wav")
 };
 
 sounds.bg.loop = true;
 sounds.bg.volume = 0.8;
 sounds.move.volume = 0.2;
+sounds.shoot.volume = 0.3;
 
 const activeSounds = [];
 
