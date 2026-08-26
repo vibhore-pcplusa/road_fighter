@@ -20,17 +20,30 @@ export function spawnObstacle(state) {
   const carColors = ['red', 'blue', 'green', 'yellow'];
   const carColor = type === 'car' ? carColors[Math.floor(Math.random() * carColors.length)] : null;
 
-  const obj = {
-    lane,
-    x: lanes[lane],
-    y: -h - 10,
-    width: w,
-    height: h,
-    speed: state.speed,
-    type,
-    color: type === 'car' ? (carColor === 'yellow' ? '#ffcc00' : "#cc3333") : "#444",
-    carColor
-  };
+  let obj = state.obstaclePool && state.obstaclePool.length ? state.obstaclePool.pop() : null;
+  if (obj) {
+    obj.lane = lane;
+    obj.x = lanes[lane];
+    obj.y = -h - 10;
+    obj.width = w;
+    obj.height = h;
+    obj.speed = state.speed;
+    obj.type = type;
+    obj.color = type === 'car' ? (carColor === 'yellow' ? '#ffcc00' : "#cc3333") : "#444";
+    obj.carColor = carColor;
+  } else {
+    obj = {
+      lane,
+      x: lanes[lane],
+      y: -h - 10,
+      width: w,
+      height: h,
+      speed: state.speed,
+      type,
+      color: type === 'car' ? (carColor === 'yellow' ? '#ffcc00' : "#cc3333") : "#444",
+      carColor
+    };
+  }
 
   state.obstacles.push(obj);
 }
@@ -44,6 +57,10 @@ export function updateObstacles(state) {
       state.player.x += (Math.random() - 0.5) * 6;
     }
 
-    if (o.y > H + 200) state.obstacles.splice(i, 1);
+    if (o.y > H + 200) {
+      const removed = state.obstacles.splice(i, 1)[0];
+      if (!state.obstaclePool) state.obstaclePool = [];
+      state.obstaclePool.push(removed);
+    }
   }
 }

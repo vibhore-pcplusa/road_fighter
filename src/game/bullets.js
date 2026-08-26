@@ -13,12 +13,21 @@ export function shootBullet(state, ui) {
   playSound('shoot');
 
   const p = state.player;
-  state.bullets.push({
-    x: p.x,
-    y: p.y,
-    lane: p.lane,
-    speed: 24
-  });
+  let b = state.bulletPool && state.bulletPool.length ? state.bulletPool.pop() : null;
+  if (b) {
+    b.x = p.x;
+    b.y = p.y;
+    b.lane = p.lane;
+    b.speed = 24;
+  } else {
+    b = {
+      x: p.x,
+      y: p.y,
+      lane: p.lane,
+      speed: 24
+    };
+  }
+  state.bullets.push(b);
 }
 
 export function updateBullets(state) {
@@ -27,7 +36,9 @@ export function updateBullets(state) {
     b.y -= b.speed;
 
     if (b.y < -20) {
-      state.bullets.splice(i, 1);
+      const removed = state.bullets.splice(i, 1)[0];
+      if (!state.bulletPool) state.bulletPool = [];
+      state.bulletPool.push(removed);
       continue;
     }
 
@@ -46,8 +57,14 @@ export function updateBullets(state) {
       if (hitObj.type === 'car') incrementMissionProgress('carsShot');
       if (hitObj.type === 'oil') incrementMissionProgress('oilDestroyed');
       
-      state.obstacles.splice(hitIndex, 1);
-      state.bullets.splice(i, 1);
+      const removedObj = state.obstacles.splice(hitIndex, 1)[0];
+      if (!state.obstaclePool) state.obstaclePool = [];
+      state.obstaclePool.push(removedObj);
+
+      const removedBullet = state.bullets.splice(i, 1)[0];
+      if (!state.bulletPool) state.bulletPool = [];
+      state.bulletPool.push(removedBullet);
+
       state.score += 25;
     }
   }
@@ -55,15 +72,26 @@ export function updateBullets(state) {
 
 export function spawnAmmo(state) {
   const lane = Math.floor(Math.random() * 3);
-  const ammo = {
-    lane,
-    x: lanes[lane],
-    y: -100,
-    width: 100,
-    height: 100,
-    speed: state.speed,
-    type: 'ammo'
-  };
+  let ammo = state.ammoPool && state.ammoPool.length ? state.ammoPool.pop() : null;
+  if (ammo) {
+    ammo.lane = lane;
+    ammo.x = lanes[lane];
+    ammo.y = -100;
+    ammo.width = 100;
+    ammo.height = 100;
+    ammo.speed = state.speed;
+    ammo.type = 'ammo';
+  } else {
+    ammo = {
+      lane,
+      x: lanes[lane],
+      y: -100,
+      width: 100,
+      height: 100,
+      speed: state.speed,
+      type: 'ammo'
+    };
+  }
   state.ammos.push(ammo);
 }
 
@@ -73,7 +101,9 @@ export function updateAmmo(state, collides) {
     a.y += state.speed;
 
     if (a.y > H + 50) {
-      state.ammos.splice(i, 1);
+      const removed = state.ammos.splice(i, 1)[0];
+      if (!state.ammoPool) state.ammoPool = [];
+      state.ammoPool.push(removed);
       continue;
     }
 
@@ -88,15 +118,28 @@ export function updateAmmo(state, collides) {
     if (collides(aBox, pBox)) {
       const maxB = state.gunLevel * 10;
       state.bulletsRemaining = Math.min(state.bulletsRemaining + 10, maxB);
-      state.floatingTexts.push({
-        x: a.x,
-        y: a.y,
-        text: '+10 Ammo',
-        startTime: Date.now(),
-        duration: 1500
-      });
+      let txt = state.textPool && state.textPool.length ? state.textPool.pop() : null;
+      if (txt) {
+        txt.x = a.x;
+        txt.y = a.y;
+        txt.text = '+10 Ammo';
+        txt.startTime = Date.now();
+        txt.duration = 1500;
+      } else {
+        txt = {
+          x: a.x,
+          y: a.y,
+          text: '+10 Ammo',
+          startTime: Date.now(),
+          duration: 1500
+        };
+      }
+      state.floatingTexts.push(txt);
+      
       incrementMissionProgress('ammosCollected');
-      state.ammos.splice(i, 1);
+      const removed = state.ammos.splice(i, 1)[0];
+      if (!state.ammoPool) state.ammoPool = [];
+      state.ammoPool.push(removed);
     }
   }
 }
