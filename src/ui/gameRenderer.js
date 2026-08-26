@@ -164,11 +164,13 @@ export function renderCanvasControls(controlImgs) {
     ctx.save();
     
     // Draw button shadow/glow
+    // Draw button drop shadow (using solid shape instead of expensive blur)
     ctx.beginPath();
-    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetY = 5;
+    ctx.arc(p.x, p.y + 4, radius + 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fill();
+    
+    // Draw button base
     
     // Draw nice gradient background
     const grad = ctx.createRadialGradient(p.x, p.y - radius/3, radius/4, p.x, p.y, radius);
@@ -183,16 +185,16 @@ export function renderCanvasControls(controlImgs) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.stroke();
 
-    // Draw arrows with depth
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    // Draw arrows with solid offset shadow instead of blur
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.font = 'bold 38px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const symbols = { up: '▲', down: '▼', left: '◀', right: '▶' };
-    ctx.fillText(symbols[k], p.x, p.y + 3);
+    ctx.fillText(symbols[k], p.x, p.y + 5); // Shadow offset
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(symbols[k], p.x, p.y + 3); // Main text
     
     ctx.restore();
   }
@@ -200,11 +202,15 @@ export function renderCanvasControls(controlImgs) {
   const bulletCountX = W - 450;
   const bulletCountY = H - 70;
   ctx.save();
-  ctx.fillStyle = '#FFD700';
   ctx.font = 'bold 56px sans-serif';
   ctx.textAlign = 'center';
-  ctx.shadowColor = '#FF9900';
-  ctx.shadowBlur = 12;
+
+  // Draw ammo shadow
+  ctx.fillStyle = '#000000';
+  ctx.fillText(state.bulletsRemaining + '/' + ((state.gunLevel || 1) * 10), bulletCountX + 3, bulletCountY + 3);
+  
+  // Draw ammo main text
+  ctx.fillStyle = '#FFD700';
   ctx.fillText(state.bulletsRemaining + '/' + ((state.gunLevel || 1) * 10), bulletCountX, bulletCountY);
   ctx.restore();
 

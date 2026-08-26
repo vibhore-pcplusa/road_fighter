@@ -13,30 +13,10 @@
   <svg preserveAspectRatio="xMidYMid slice" viewBox="10 10 80 80">
     <defs>
         <style>
-            @keyframes rotate {
-					 0% {
-                    transform: rotate(0deg);
-                }
-                100% {
-                    transform: rotate(360deg);
-                }
-            }
-            .out-top {
-                animation: rotate 20s linear infinite;
-                transform-origin: 13px 25px;
-            }
-            .in-top {
-                animation: rotate 10s linear infinite;
-                transform-origin: 13px 25px;
-            }
-            .out-bottom {
-                animation: rotate 25s linear infinite;
-                transform-origin: 84px 93px;
-            }
-            .in-bottom {
-                animation: rotate 15s linear infinite;
-                transform-origin: 84px 93px;
-            }
+            .out-top { transform-origin: 13px 25px; transform: rotate(15deg); }
+            .in-top { transform-origin: 13px 25px; transform: rotate(-45deg); }
+            .out-bottom { transform-origin: 84px 93px; transform: rotate(80deg); }
+            .in-bottom { transform-origin: 84px 93px; transform: rotate(-10deg); }
         </style>
     </defs>
     <path fill="#9b5de5" class="out-top" d="M37-5C25.1-14.7,5.7-19.1-9.2-10-28.5,1.8-32.7,31.1-19.8,49c15.5,21.5,52.6,22,67.2,2.3C59.4,35,53.7,8.5,37-5Z"/>

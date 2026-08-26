@@ -13,35 +13,51 @@ sounds.bg.volume = 0.8;
 sounds.move.volume = 0.2;
 sounds.shoot.volume = 0.3;
 
-const activeSounds = [];
+const soundPools = {};
+const POOL_SIZE = 5;
+
+// Initialize pools
+for (const key in sounds) {
+  soundPools[key] = [];
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const audio = sounds[key].cloneNode();
+    audio.volume = sounds[key].volume;
+    if (sounds[key].loop) audio.loop = true;
+    soundPools[key].push(audio);
+  }
+}
+
+let poolIndex = 0;
 
 export function playSound(sound) {
-  if (!sounds[sound]) return;
+  if (!soundPools[sound]) return;
   try {
-    const original = sounds[sound];
-    const audio = original.cloneNode();
-    audio.volume = original.volume;
-    audio.playbackRate = original.playbackRate;
-    activeSounds.push(audio);
-
-    const removeFromList = () => {
-      const index = activeSounds.indexOf(audio);
-      if (index >= 0) activeSounds.splice(index, 1);
-    };
-
-    audio.addEventListener('ended', removeFromList);
-    audio.addEventListener('pause', removeFromList);
-    audio.play().catch(removeFromList);
+    const pool = soundPools[sound];
+    // Find an available audio element (paused or ended)
+    let audio = pool.find(a => a.paused || a.ended);
+    
+    // If all are playing, override one
+    if (!audio) {
+      audio = pool[poolIndex % POOL_SIZE];
+      poolIndex++;
+    }
+    
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {});
+    }
   } catch (e) {}
 }
 
 export function stopAllActiveSounds() {
-  while (activeSounds.length) {
-    const audio = activeSounds.pop();
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (e) {}
+  for (const key in soundPools) {
+    soundPools[key].forEach(audio => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (e) {}
+    });
   }
 }
 

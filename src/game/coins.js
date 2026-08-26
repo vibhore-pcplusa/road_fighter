@@ -11,17 +11,30 @@ export function spawnCoin(state) {
   else if (rand < 0.30) value = 100;
   else value = 50;
 
-  const coin = {
-    lane,
-    x: lanes[lane],
-    y: -40,
-    width: 60,
-    height: 60,
-    speed: state.speed,
-    type: 'coin',
-    value,
-    color: gameConfig.COIN_COLORS[value]
-  };
+  let coin = state.coinPool && state.coinPool.length ? state.coinPool.pop() : null;
+  if (coin) {
+    coin.lane = lane;
+    coin.x = lanes[lane];
+    coin.y = -40;
+    coin.width = 60;
+    coin.height = 60;
+    coin.speed = state.speed;
+    coin.type = 'coin';
+    coin.value = value;
+    coin.color = gameConfig.COIN_COLORS[value];
+  } else {
+    coin = {
+      lane,
+      x: lanes[lane],
+      y: -40,
+      width: 60,
+      height: 60,
+      speed: state.speed,
+      type: 'coin',
+      value,
+      color: gameConfig.COIN_COLORS[value]
+    };
+  }
 
   state.coins.push(coin);
 }
@@ -32,7 +45,9 @@ export function updateCoins(state, collides) {
     c.y += state.speed;
 
     if (c.y > H + 50) {
-      state.coins.splice(i, 1);
+      const removed = state.coins.splice(i, 1)[0];
+      if (!state.coinPool) state.coinPool = [];
+      state.coinPool.push(removed);
       continue;
     }
 
@@ -47,14 +62,27 @@ export function updateCoins(state, collides) {
     if (collides(cBox, pBox)) {
       if (!state.scoreFromCoins) state.scoreFromCoins = 0;
       state.scoreFromCoins += c.value;
-      state.floatingTexts.push({
-        x: c.x,
-        y: c.y,
-        text: '+' + c.value,
-        startTime: Date.now(),
-        duration: 1500
-      });
-      state.coins.splice(i, 1);
+      let txt = state.textPool && state.textPool.length ? state.textPool.pop() : null;
+      if (txt) {
+        txt.x = c.x;
+        txt.y = c.y;
+        txt.text = '+' + c.value;
+        txt.startTime = Date.now();
+        txt.duration = 1500;
+      } else {
+        txt = {
+          x: c.x,
+          y: c.y,
+          text: '+' + c.value,
+          startTime: Date.now(),
+          duration: 1500
+        };
+      }
+      state.floatingTexts.push(txt);
+
+      const removed = state.coins.splice(i, 1)[0];
+      if (!state.coinPool) state.coinPool = [];
+      state.coinPool.push(removed);
     }
   }
 }
