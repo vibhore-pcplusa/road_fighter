@@ -42,8 +42,9 @@ export function resetToIdleScreen() {
   }
 }
 
-export function startGame() {
+export function startGame(mode = state.difficultyMode || 'easy') {
   if (state.running) return;
+  state.difficultyMode = mode;
   stopBgMusic();
   state.trees.length = 0;
   state.running = true;

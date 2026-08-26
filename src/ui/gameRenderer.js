@@ -102,6 +102,28 @@ export function renderGameObjects(images, trees, controlImgs) {
     ctx.restore();
   }
 
+  // Day/Night Overlay with Headlights
+  if (state.nightMode > 0) {
+    ctx.save();
+    const p = state.player;
+    if (p && p.alive) {
+      const hX = p.x;
+      const hY = p.y - p.height; // Center of lights slightly ahead of car
+      const grad = ctx.createRadialGradient(hX, hY, 50, hX, hY, 450);
+      grad.addColorStop(0, 'rgba(0, 0, 15, 0)'); // Clear near car
+      grad.addColorStop(0.4, `rgba(0, 0, 15, ${state.nightMode * 0.4})`); // Semi-dark transition
+      grad.addColorStop(1, `rgba(0, 0, 15, ${state.nightMode * 0.8})`); // Max 80% darkness
+      
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // If player is dead, just draw flat darkness
+      ctx.fillStyle = `rgba(0, 0, 15, ${state.nightMode * 0.8})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+  }
+
   for (const t of state.floatingTexts) {
     const elapsed = Date.now() - t.startTime;
     const progress = elapsed / t.duration;

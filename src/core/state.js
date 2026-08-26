@@ -25,6 +25,8 @@ export const state = {
   treePool: [],
   textPool: [],
   player: null,
+  nightMode: 0,
+  difficultyMode: 'easy',
   frames: 0,
   minSpeed: 2,
   maxSpeed: 12,
