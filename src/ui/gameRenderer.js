@@ -159,18 +159,42 @@ export function renderCanvasControls(controlImgs) {
   for (const k of ['up', 'down', 'left', 'right']) {
     const img = controlImgs[k];
     const p = positions[k];
+    const radius = size / 1.6;
+
+    ctx.save();
+    
+    // Draw button shadow/glow
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.arc(p.x, p.y, size / 1.6, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetY = 5;
+    
+    // Draw nice gradient background
+    const grad = ctx.createRadialGradient(p.x, p.y - radius/3, radius/4, p.x, p.y, radius);
+    grad.addColorStop(0, 'rgba(60, 70, 90, 0.9)');
+    grad.addColorStop(1, 'rgba(20, 25, 35, 0.9)');
+    ctx.fillStyle = grad;
     ctx.fill();
-    if (img && img.complete && img.naturalWidth && img.naturalWidth > 0) {
-      ctx.globalAlpha = 0.7;
-      ctx.drawImage(img, p.x - size / 1.6, p.y - size / 1.6, size * 1.2, size * 1.2);
-      ctx.globalAlpha = 1.0;
-    } else {
-      ctx.fillStyle = '#888';
-      ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
-    }
+    
+    // Draw border highlight (inset rim)
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.stroke();
+
+    // Draw arrows with depth
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 38px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const symbols = { up: '▲', down: '▼', left: '◀', right: '▶' };
+    ctx.fillText(symbols[k], p.x, p.y + 3);
+    
+    ctx.restore();
   }
 
   const bulletCountX = W - 450;
