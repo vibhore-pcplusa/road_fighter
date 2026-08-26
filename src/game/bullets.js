@@ -1,6 +1,7 @@
 import { gameConfig } from '../core/state.js';
 import { playSound } from '../audio/soundManager.js';
 import { lanes, H } from '../core/constants.js';
+import { incrementMissionProgress } from '../utils/dailyTracker.js';
 
 export function shootBullet(state, ui) {
   if (!state.running || state.paused || !state.player.alive) return;
@@ -41,6 +42,10 @@ export function updateBullets(state) {
     }
 
     if (hitIndex !== -1) {
+      const hitObj = state.obstacles[hitIndex];
+      if (hitObj.type === 'car') incrementMissionProgress('carsShot');
+      if (hitObj.type === 'oil') incrementMissionProgress('oilDestroyed');
+      
       state.obstacles.splice(hitIndex, 1);
       state.bullets.splice(i, 1);
       state.score += 25;
@@ -90,6 +95,7 @@ export function updateAmmo(state, collides) {
         startTime: Date.now(),
         duration: 1500
       });
+      incrementMissionProgress('ammosCollected');
       state.ammos.splice(i, 1);
     }
   }

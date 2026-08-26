@@ -58,10 +58,16 @@ export function drawStartScreen() {
   ctx.stroke();
 
   let xOffset = W / 2 - titleWidth / 2;
+  const timeOffset = Date.now() / 150; // Speed of the dance
+  
   for (let i = 0; i < title.length; i++) {
     const char = title[i];
     ctx.fillStyle = colors[i % colors.length];
-    ctx.fillText(char, xOffset + ctx.measureText(title.substring(0, i)).width + ctx.measureText(char).width / 2, titleY);
+    
+    // Calculate a bouncing wave effect for each letter
+    const waveY = titleY + Math.sin(i * 0.5 + timeOffset) * 12;
+    
+    ctx.fillText(char, xOffset + ctx.measureText(title.substring(0, i)).width + ctx.measureText(char).width / 2, waveY);
   }
 
   ctx.fillStyle = "#00c853";

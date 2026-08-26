@@ -50,11 +50,13 @@
         <img src="assets/settings.png" alt="Settings" />
       </button>
       <div id="quickMenu" class="quick-menu">
-        <button class="quick-action" data-panel="stats" type="button">Stats</button>
-        <button class="quick-action" data-panel="shop" type="button">Shop</button>
-        <button class="quick-action" data-panel="controls" type="button">Help</button>
-        <button class="quick-action" data-panel="leaders" type="button">Leaders</button>
-        <button class="quick-action" data-panel="share" type="button">Share</button>
+          <button class="quick-action" data-panel="daily" style="background-color: #FBC02D; color: #111;">Daily Rewards</button>
+          <button class="quick-action" id="rpsGameBtn" data-panel="rps" style="background-color: #388E3C;">Rock Paper Scissors</button>
+          <button class="quick-action" data-panel="stats" style="background-color: #1976D2;">Stats</button>
+          <button class="quick-action" data-panel="shop" style="background-color: #7B1FA2;">Shop</button>
+          <button class="quick-action" data-panel="controls" style="background-color: #F57C00;">Help</button>
+          <button class="quick-action" data-panel="leaders" style="background-color: #0097A7;">Leaders</button>
+          <button class="quick-action" data-panel="share" style="background-color: #C2185B;">Share</button>
       </div>
     </div>
     <canvas id="game" width="720" height="1200"></canvas> <!-- increased logical canvas default -->
@@ -63,6 +65,49 @@
       <button id="gunToggle" class="gun-toggle" type="button" aria-label="Shoot">
         <i class="fa-solid fa-gun"></i>
       </button>
+    </div>
+  </div>
+  <!-- RPS Mini Game Overlay -->
+  <div id="rpsOverlay" class="rps-overlay hidden">
+    <button id="rpsCloseBtn" class="rps-close">X</button>
+    <div class="rps-header">
+      <h2>Rock Paper Scissors</h2>
+      <p id="rpsPlaysText">Plays left today: 5/5</p>
+      <p id="rpsTotalCoins" style="font-weight: bold; font-size: 18px; color: #333; margin-top: 5px;">Coins: 0</p>
+    </div>
+
+    <!-- Bet Selection Screen -->
+    <div id="rpsBetSelection" class="rps-bet-selection">
+      <h3>Select Your Bet</h3>
+      <p>Win to double your coins. Draw refunds your bet.</p>
+      <div class="rps-bet-buttons">
+        <button class="rps-bet-btn" data-bet="100">100</button>
+        <button class="rps-bet-btn" data-bet="250">250</button>
+        <button class="rps-bet-btn" data-bet="500">500</button>
+        <button class="rps-bet-btn" data-bet="1000">1000</button>
+      </div>
+    </div>
+
+    <!-- Arena Screen -->
+    <div id="rpsArena" class="rps-arena hidden">
+      <div class="rps-cpu-area">
+        <span class="rps-name">Vibhore (Developer)</span>
+        <div id="rpsCpuChoice" class="rps-emoji">🐻‍❄️</div>
+      </div>
+      
+      <div id="rpsResultText" class="rps-result-text">VS</div>
+
+      <div class="rps-player-area">
+        <div id="rpsPlayerChoice" class="rps-emoji">❓</div>
+        <span class="rps-name">You (Bet: <span id="rpsCurrentBet"></span>)</span>
+      </div>
+
+      <div id="rpsActionButtons" class="rps-action-buttons">
+        <button class="rps-action-btn" data-choice="0">🪨</button>
+        <button class="rps-action-btn" data-choice="1">📄</button>
+        <button class="rps-action-btn" data-choice="2">✂️</button>
+      </div>
+      <button id="rpsPlayAgainBtn" class="rps-play-again hidden">Play Again</button>
     </div>
   </div>
 

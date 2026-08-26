@@ -5,6 +5,8 @@ import { playSound, stopAllActiveSounds, playBgMusic, stopBgMusic } from './audi
 import { collides, rectContains } from './utils/collision.js';
 import { clampSpeed, drawRoundedRect, $id, getSpeedKmh } from './utils/helpers.js';
 import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry, loadPlayerStats, savePlayerStats, loadInventory, saveInventory } from './utils/storage.js';
+import { checkDailyReset, loadDailyData, claimDailyLogin, claimDailyMission, canPlayRPS, getRPSPlays, incrementRPSPlays } from './utils/dailyTracker.js';
+import { getCPUChoice, playRPS, RPS_CHOICES, RPS_RESULTS } from './utils/rpsGame.js';
 import { createPlayer, moveLeft, moveRight, updatePlayerPosition } from './game/player.js';
 import { spawnObstacle, updateObstacles } from './game/obstacles.js';
 import { spawnCoin, updateCoins } from './game/coins.js';
@@ -14,7 +16,7 @@ import { addFloatingText, updateFloatingTexts } from './game/floatingText.js';
 import { resetToIdleScreen, startGame, togglePause } from './game/gameLoop.js';
 import { drawRoad, drawStartScreen, drawHUD, drawLoadingScreen, drawRotateToPortrait } from './ui/rendering.js';
 import { drawGameOverOverlay } from './ui/gameOverScreen.js';
-import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel } from './ui/panels.js';
+import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel, drawDailyPanel } from './ui/panels.js';
 import { renderGameObjects, renderCanvasControls, renderExplosion } from './ui/gameRenderer.js';
 
 let assetsReady = false;
@@ -41,9 +43,11 @@ function drawToastMessage() {
   if (!ui.toast) return;
   ctx.save();
 
-  const boxX = W / 2 - 160;
+  ctx.font = 'bold 22px sans-serif';
+  const textW = ctx.measureText(ui.toast).width;
+  const boxW = Math.max(320, textW + 60);
+  const boxX = W / 2 - boxW / 2;
   const boxY = 165;
-  const boxW = 320;
   const boxH = 55;
   const borderRadius = 10;
 
@@ -167,9 +171,9 @@ function update() {
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
-  
-  if (state.distance >= state.lastAmmoDistance + 100) {
-    state.lastAmmoDistance += 100;
+
+  if (state.distance >= state.lastAmmoDistance + 200) {
+    state.lastAmmoDistance += 200;
     spawnAmmo(state);
   }
 
@@ -232,6 +236,7 @@ function drawTopmostPanels() {
   if (ui.panels.controls) drawControlsPanel();
   if (ui.panels.stats) drawStatsPanel();
   if (ui.panels.shop) drawShopPanel();
+  if (ui.panels.daily) drawDailyPanel();
 }
 
 function loop() {
@@ -285,7 +290,7 @@ function preloadAssets(options) {
   }
 
   let loadedImages = 0;
-  const markImageLoaded = function() {
+  const markImageLoaded = function () {
     loadedImages++;
     _assetsProgress = Math.round(loadedImages / totalImages * 100);
     if (_assetsProgress > 100) _assetsProgress = 100;
@@ -294,7 +299,7 @@ function preloadAssets(options) {
   return new Promise((resolve) => {
     let finished = false;
     const failedImages = [];
-    const tryFinish = function() {
+    const tryFinish = function () {
       if (finished) return;
       if (loadedImages >= totalImages) {
         finished = true;
@@ -304,7 +309,7 @@ function preloadAssets(options) {
       }
     };
 
-    imgs.forEach(function(img) {
+    imgs.forEach(function (img) {
       if (!img) {
         markImageLoaded();
         tryFinish();
@@ -315,7 +320,7 @@ function preloadAssets(options) {
         tryFinish();
         return;
       }
-      const onl = function() {
+      const onl = function () {
         if (img.naturalWidth && img.naturalWidth > 0) {
           img.removeEventListener('load', onl);
           img.removeEventListener('error', one);
@@ -325,7 +330,7 @@ function preloadAssets(options) {
           one();
         }
       };
-      const one = function() {
+      const one = function () {
         img.removeEventListener('load', onl);
         img.removeEventListener('error', one);
         failedImages.push(img && img.src);
@@ -337,10 +342,10 @@ function preloadAssets(options) {
       img.addEventListener('error', one);
       try {
         if (!img.src) img.src = img.getAttribute && img.getAttribute('data-src') || img.src || '';
-      } catch (e) {}
+      } catch (e) { }
     });
 
-    setTimeout(function() {
+    setTimeout(function () {
       if (finished) return;
       _assetsLoadingStuck = true;
       _assetsProgress = Math.round(loadedImages / totalImages * 100);
@@ -366,7 +371,7 @@ function evaluateHighScore() {
 function prepareGameOverState() {
   ui.showHighScorePrompt = false;
   ui.highScoreChecked = false;
-  
+
   // Save coins and run stats
   state.totalCoins += state.scoreFromCoins;
   state.lastRuns.unshift({
@@ -376,11 +381,11 @@ function prepareGameOverState() {
     date: Date.now()
   });
   savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
-  
+
   // AdMob Interstitial Ad logic
   let adCounter = parseInt(localStorage.getItem('adGameOverCounter') || '0', 10);
   adCounter++;
-  
+
   if (adCounter >= 4) {
     if (window.AndroidApp && typeof window.AndroidApp.showInterstitialAd === 'function') {
       window.AndroidApp.showInterstitialAd();
@@ -388,9 +393,9 @@ function prepareGameOverState() {
     adCounter = 0; // Reset after showing ad
   }
   localStorage.setItem('adGameOverCounter', adCounter.toString());
-  
+
   evaluateHighScore();
-  fetchLeaders().then(() => evaluateHighScore()).catch(() => {});
+  fetchLeaders().then(() => evaluateHighScore()).catch(() => { });
 }
 
 function saveScoreByName(name) {
@@ -447,6 +452,51 @@ function handleCanvasPointer(x, y) {
     return;
   }
 
+  if (ui.panels.daily) {
+    const w = 620, h = 600;
+    const sx = (W - w) / 2, sy = (H - h) / 2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+
+    // Close button or outside click
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.daily = false;
+      ui.inputActive = false;
+      return;
+    }
+
+    // Check Login claim button
+    const loginBtnW = 160, loginBtnH = 50;
+    const loginBtnX = sx + w - loginBtnW - 26;
+    const loginBtnY = sy + 85;
+    if (rectContains(loginBtnX, loginBtnY, loginBtnW, loginBtnH, x, y)) {
+      if (claimDailyLogin()) {
+        ui.toast = 'Daily Login Claimed!';
+        setTimeout(() => ui.toast = null, 1500);
+      }
+      return;
+    }
+
+    // Check Missions claim buttons
+    const missions = ['carsShot', 'oilDestroyed', 'ammosCollected'];
+    let my = sy + 280;
+    for (let m of missions) {
+      const mBtnW = 140, mBtnH = 46;
+      const mBtnX = sx + w - mBtnW - 40;
+      const mBtnY = my + 22;
+
+      if (rectContains(mBtnX, mBtnY, mBtnW, mBtnH, x, y)) {
+        if (claimDailyMission(m)) {
+          ui.toast = 'Mission Reward Claimed!';
+          setTimeout(() => ui.toast = null, 1500);
+        }
+        return; // Click handled
+      }
+      my += 105;
+    }
+    return;
+  }
+
   if (ui.panels.shop) {
     const w = 560, h = 660; // Fixed to match panels.js rendering
     const sx = (W - w) / 2, sy = (H - h) / 2;
@@ -462,7 +512,7 @@ function handleCanvasPointer(x, y) {
       ui.inputActive = false;
       return;
     }
-    
+
     // Check shop interactions
     const cars = [
       { id: 'mycar', price: 0 },
@@ -478,7 +528,7 @@ function handleCanvasPointer(x, y) {
       const btnW = 140, btnH = 46;
       const btnX = sx + w - 30 - btnW;
       const btnY = itemY + 27;
-      
+
       if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
         if (state.unlockedCars.includes(car.id)) {
           state.selectedCar = car.id;
@@ -684,18 +734,18 @@ function ensureHiddenTextInput() {
   input.style.overflow = 'hidden';
   input.style.whiteSpace = 'nowrap';
 
-  input.addEventListener('input', function() {
+  input.addEventListener('input', function () {
     ui.saveName = input.value.trimStart();
   });
 
-  input.addEventListener('blur', function() {
+  input.addEventListener('blur', function () {
     // Refocus if still inputActive
     if (ui.inputActive) {
       setTimeout(() => input.focus(), 0);
     }
   });
 
-  input.addEventListener('keydown', function(e) {
+  input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       if (!ui.saveName || !ui.saveName.trim()) {
         ui.toast = 'Name cannot be blank';
@@ -794,6 +844,21 @@ function activateSaveNameInput() {
   window.addEventListener('keydown', handleGlobalKeydown);
 }
 
+function setupRPSGame() {
+  const rpsBtn = document.getElementById('rpsGameBtn');
+  if (rpsBtn) {
+    rpsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!canPlayRPS()) {
+        ui.toast = 'Limit reached. Come back tomorrow!';
+        setTimeout(() => ui.toast = null, 2000);
+        return;
+      }
+      openRPSGame();
+    });
+  }
+}
+
 function setupUI() {
   // Add a generic click sound to all UI buttons
   document.querySelectorAll('button').forEach(btn => {
@@ -805,7 +870,7 @@ function setupUI() {
   // Gun button
   const gunToggle = document.getElementById('gunToggle');
   if (gunToggle) {
-    gunToggle.addEventListener('click', function(e) {
+    gunToggle.addEventListener('click', function (e) {
       e.stopPropagation();
       shootBullet(state, ui);
     });
@@ -815,7 +880,7 @@ function setupUI() {
   const settingsToggle = document.getElementById('settingsToggle');
   const quickMenu = document.getElementById('quickMenu');
   if (settingsToggle) {
-    settingsToggle.addEventListener('click', function(e) {
+    settingsToggle.addEventListener('click', function (e) {
       e.stopPropagation();
       const isOpen = quickMenu.classList.toggle('open');
       settingsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -824,8 +889,8 @@ function setupUI() {
 
   // Quick menu action buttons (Help, Leaders, Share)
   if (quickMenu) {
-    quickMenu.querySelectorAll('.quick-action').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
+    quickMenu.querySelectorAll('.quick-action').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
         e.stopPropagation();
         const panel = btn.getAttribute('data-panel');
         if (panel === 'controls') {
@@ -838,11 +903,26 @@ function setupUI() {
           ui.panels.controls = false;
           ui.panels.stats = false;
           ui.panels.shop = false;
+          ui.panels.daily = false;
         } else if (panel === 'stats') {
           ui.panels.stats = !ui.panels.stats;
-          ui.panels.controls = false;
           ui.panels.leaders = false;
+          ui.panels.controls = false;
           ui.panels.shop = false;
+          ui.panels.daily = false;
+        } else if (panel === 'daily') {
+          ui.panels.daily = !ui.panels.daily;
+          ui.panels.leaders = false;
+          ui.panels.controls = false;
+          ui.panels.stats = false;
+          ui.panels.shop = false;
+        } else if (panel === 'rps') {
+          if (!canPlayRPS()) {
+            ui.toast = 'Limit reached. Come back tomorrow!';
+            setTimeout(() => ui.toast = null, 2000);
+            return;
+          }
+          openRPSGame();
         } else if (panel === 'shop') {
           ui.panels.shop = !ui.panels.shop;
           ui.panels.controls = false;
@@ -852,7 +932,7 @@ function setupUI() {
           const shareUrl = 'https://play.google.com/store/apps/details?id=com.vibhorejain.road_fighter';
           const shareText = 'Check out this awesome game!';
           const shareTitle = 'Road Fighter';
-          
+
           if (window.AndroidApp && window.AndroidApp.shareUrl) {
             window.AndroidApp.shareUrl(shareTitle, shareText, shareUrl);
           } else if (navigator.share) {
@@ -872,7 +952,7 @@ function setupUI() {
   }
 
   // Close menu when clicking outside
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     if (!e.target.closest('.hud-overlay') && quickMenu) {
       quickMenu.classList.remove('open');
       if (settingsToggle) settingsToggle.setAttribute('aria-expanded', 'false');
@@ -882,48 +962,48 @@ function setupUI() {
   let isDraggingStats = false;
   let lastTouchY = 0;
 
-  canvas.addEventListener('wheel', function(e) {
+  canvas.addEventListener('wheel', function (e) {
     if (ui.panels.stats) {
       ui.statsScrollY -= e.deltaY;
       const listLength = state.lastRuns ? state.lastRuns.length : 0;
       const rowHeight = 70;
-      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
       ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
       e.preventDefault();
     }
   }, { passive: false });
 
-  canvas.addEventListener('pointerdown', function(e) {
+  canvas.addEventListener('pointerdown', function (e) {
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-    
+
     if (ui.panels.stats) {
       isDraggingStats = true;
       lastTouchY = e.clientY;
     }
-    
+
     handleCanvasPointer(x, y);
   });
 
-  canvas.addEventListener('pointermove', function(e) {
+  canvas.addEventListener('pointermove', function (e) {
     if (ui.panels.stats && isDraggingStats) {
       const deltaY = e.clientY - lastTouchY;
       // Scale deltaY to canvas coordinates approximately
       const rect = canvas.getBoundingClientRect();
       const scale = canvas.height / rect.height;
-      
+
       ui.statsScrollY += deltaY * scale;
       const listLength = state.lastRuns ? state.lastRuns.length : 0;
       const rowHeight = 70;
-      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400); 
+      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
       ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
-      
+
       lastTouchY = e.clientY;
     }
   });
 
-  canvas.addEventListener('pointerup', function(e) {
+  canvas.addEventListener('pointerup', function (e) {
     isDraggingStats = false;
     if (ui.inputActive) return;
     ui.holding = null;
@@ -935,17 +1015,22 @@ window.startGame = startGame;
 window.togglePause = togglePause;
 
 preloadAssets().then(() => {
-  setTimeout(function() {
+  setTimeout(function () {
     const stats = loadPlayerStats();
     state.totalCoins = stats.totalCoins;
     state.lastRuns = stats.lastRuns;
-    
+
     const inv = loadInventory();
     state.unlockedCars = inv.unlockedCars;
     state.selectedCar = inv.selectedCar;
     state.gunLevel = inv.gunLevel || 1;
     state.bulletsRemaining = state.gunLevel * 10;
-    
+
+    const dailyData = checkDailyReset();
+    if (!dailyData.loginClaimed) {
+      ui.panels.daily = true;
+    }
+
     setupUI();
     fetchLeaders();
   }, 180);
@@ -976,5 +1061,161 @@ function resizeCanvas() {
   }
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// ==========================================
+// RPS Mini Game Logic
+// ==========================================
+
+let currentRPSBet = 0;
+
+window.openRPSGame = function () {
+  const overlay = document.getElementById('rpsOverlay');
+  const betSelection = document.getElementById('rpsBetSelection');
+  const arena = document.getElementById('rpsArena');
+  const playsText = document.getElementById('rpsPlaysText');
+  const closeBtn = document.getElementById('rpsCloseBtn');
+  const playAgainBtn = document.getElementById('rpsPlayAgainBtn');
+
+  if (!overlay) return;
+
+  overlay.classList.remove('hidden');
+  betSelection.classList.remove('hidden');
+  arena.classList.add('hidden');
+  playAgainBtn.classList.add('hidden');
+
+  // Re-enable and reset bet buttons
+  document.querySelectorAll('.rps-bet-btn').forEach(b => {
+    b.disabled = false;
+    b.classList.remove('selected');
+  });
+
+  const playsLeft = 5 - getRPSPlays();
+  playsText.textContent = `Plays left today: ${playsLeft}/5`;
+  const totalCoinsText = document.getElementById('rpsTotalCoins');
+  if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+
+  closeBtn.onclick = () => overlay.classList.add('hidden');
+
+  document.querySelectorAll('.rps-bet-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      if (btn.disabled) return;
+      playSound('move');
+      document.querySelectorAll('.rps-bet-btn').forEach(b => b.disabled = true);
+
+      const bet = parseInt(e.target.getAttribute('data-bet'));
+      if (state.totalCoins < bet) {
+        ui.toast = 'Error: Not enough coins!';
+        setTimeout(() => { ui.toast = null; }, 2000);
+        document.querySelectorAll('.rps-bet-btn').forEach(b => b.disabled = false);
+        return;
+      }
+      currentRPSBet = bet;
+      document.getElementById('rpsCurrentBet').textContent = bet;
+      state.totalCoins -= bet;
+      if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+      savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+
+      e.target.classList.add('selected');
+      e.target.classList.add('bet-animating');
+      setTimeout(() => {
+        e.target.classList.remove('bet-animating');
+        betSelection.classList.add('hidden');
+        arena.classList.remove('hidden');
+        resetRPSArena();
+      }, 500);
+    };
+  });
+
+  document.querySelectorAll('.rps-action-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      playSound('move');
+      document.querySelectorAll('.rps-action-btn').forEach(b => b.disabled = true);
+      const playerChoice = parseInt(e.currentTarget.getAttribute('data-choice'));
+      playRPSMatch(playerChoice);
+    };
+  });
+
+  playAgainBtn.onclick = () => {
+    if (!canPlayRPS()) {
+      ui.toast = 'Daily limit reached! Come back tomorrow.';
+      setTimeout(() => { ui.toast = null; }, 2500);
+      overlay.classList.add('hidden');
+      return;
+    }
+    window.openRPSGame();
+  };
+}
+
+function resetRPSArena() {
+  const playerChoice = document.getElementById('rpsPlayerChoice');
+  const cpuChoice = document.getElementById('rpsCpuChoice');
+  playerChoice.textContent = '❓';
+  cpuChoice.textContent = '🐻‍❄️';
+  playerChoice.classList.remove('fly-to-center');
+  cpuChoice.classList.remove('fly-to-center');
+
+  const resultText = document.getElementById('rpsResultText');
+  resultText.textContent = 'VS';
+  resultText.style.color = '#333';
+  resultText.classList.remove('win-animating');
+
+  document.querySelectorAll('.rps-action-btn').forEach(b => b.disabled = false);
+  document.getElementById('rpsPlayAgainBtn').classList.add('hidden');
+}
+
+function playRPSMatch(playerChoice) {
+  incrementRPSPlays();
+  const playsLeft = 5 - getRPSPlays();
+  document.getElementById('rpsPlaysText').textContent = `Plays left today: ${playsLeft}/5`;
+
+  const cpuChoice = getCPUChoice();
+  const emojis = ['🪨', '📄', '✂️'];
+
+  const playerEmojiEl = document.getElementById('rpsPlayerChoice');
+  const cpuEmojiEl = document.getElementById('rpsCpuChoice');
+  const resultText = document.getElementById('rpsResultText');
+  const playAgainBtn = document.getElementById('rpsPlayAgainBtn');
+
+  playerEmojiEl.textContent = emojis[playerChoice];
+  cpuEmojiEl.textContent = emojis[cpuChoice];
+
+  playSound('shoot'); // Fly sound
+  playerEmojiEl.classList.add('fly-to-center');
+  cpuEmojiEl.classList.add('fly-to-center');
+  resultText.textContent = ''; // Clear VS during animation
+
+  setTimeout(() => {
+    playerEmojiEl.classList.remove('fly-to-center');
+    cpuEmojiEl.classList.remove('fly-to-center');
+
+    const result = playRPS(playerChoice, cpuChoice);
+
+    if (result === RPS_RESULTS.WIN) {
+      playSound('accelerate');
+      resultText.textContent = `YOU WIN +${currentRPSBet * 2}!`;
+      resultText.style.color = '#4CAF50';
+      resultText.classList.add('win-animating');
+      state.totalCoins += currentRPSBet * 2;
+    } else if (result === RPS_RESULTS.DRAW) {
+      playSound('pause');
+      resultText.textContent = `DRAW! Refunded ${currentRPSBet}`;
+      resultText.style.color = '#FF9800';
+      state.totalCoins += currentRPSBet;
+    } else {
+      playSound('crash');
+      resultText.textContent = `YOU LOSE! -${currentRPSBet}`;
+      resultText.style.color = '#F44336';
+    }
+
+    const totalCoinsText = document.getElementById('rpsTotalCoins');
+    if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+
+    savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+
+    setTimeout(() => {
+      playAgainBtn.classList.remove('hidden');
+    }, 2000);
+  }, 2000); // 2 second flying animation
+}

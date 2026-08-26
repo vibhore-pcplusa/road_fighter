@@ -34,7 +34,7 @@ export const state = {
 
 export const ui = {
   pauseLabel: 'Pause',
-  panels: { save: false, leaders: false, controls: false, stats: false, shop: false },
+  panels: { save: false, leaders: false, controls: false, stats: false, shop: false, daily: false },
   toast: null,
   touchVisible: false,
   saveMessage: '',
