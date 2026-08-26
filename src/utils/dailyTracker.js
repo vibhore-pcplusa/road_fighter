@@ -24,6 +24,9 @@ export function loadDailyData() {
     if (!parsed.missions) {
       parsed.missions = createDefaultMissions();
     }
+    if (typeof parsed.rpsPlaysToday !== 'number') {
+      parsed.rpsPlaysToday = 0;
+    }
     return parsed;
   } catch (e) {
     return createDefaultDailyData();
@@ -49,7 +52,8 @@ function createDefaultDailyData() {
     lastDate: getTodayString(),
     streakDay: 1,
     loginClaimed: false,
-    missions: createDefaultMissions()
+    missions: createDefaultMissions(),
+    rpsPlaysToday: 0
   };
 }
 
@@ -70,6 +74,7 @@ export function checkDailyReset() {
     data.lastDate = today;
     data.loginClaimed = false;
     data.missions = createDefaultMissions();
+    data.rpsPlaysToday = 0;
     saveDailyData(data);
   }
   return data;
@@ -126,6 +131,24 @@ export function incrementMissionProgress(type) {
   const target = getMissionTarget(data.streakDay);
   if (data.missions[type].progress < target) {
     data.missions[type].progress++;
+    saveDailyData(data);
+  }
+}
+
+export function canPlayRPS() {
+  const data = loadDailyData();
+  return data.rpsPlaysToday < 5;
+}
+
+export function getRPSPlays() {
+  const data = loadDailyData();
+  return data.rpsPlaysToday;
+}
+
+export function incrementRPSPlays() {
+  const data = loadDailyData();
+  if (data.rpsPlaysToday < 5) {
+    data.rpsPlaysToday++;
     saveDailyData(data);
   }
 }

@@ -5,7 +5,8 @@ import { playSound, stopAllActiveSounds, playBgMusic, stopBgMusic } from './audi
 import { collides, rectContains } from './utils/collision.js';
 import { clampSpeed, drawRoundedRect, $id, getSpeedKmh } from './utils/helpers.js';
 import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry, loadPlayerStats, savePlayerStats, loadInventory, saveInventory } from './utils/storage.js';
-import { checkDailyReset, loadDailyData, claimDailyLogin, claimDailyMission } from './utils/dailyTracker.js';
+import { checkDailyReset, loadDailyData, claimDailyLogin, claimDailyMission, canPlayRPS, getRPSPlays, incrementRPSPlays } from './utils/dailyTracker.js';
+import { getCPUChoice, playRPS, RPS_CHOICES, RPS_RESULTS } from './utils/rpsGame.js';
 import { createPlayer, moveLeft, moveRight, updatePlayerPosition } from './game/player.js';
 import { spawnObstacle, updateObstacles } from './game/obstacles.js';
 import { spawnCoin, updateCoins } from './game/coins.js';
@@ -42,9 +43,11 @@ function drawToastMessage() {
   if (!ui.toast) return;
   ctx.save();
 
-  const boxX = W / 2 - 160;
+  ctx.font = 'bold 22px sans-serif';
+  const textW = ctx.measureText(ui.toast).width;
+  const boxW = Math.max(320, textW + 60);
+  const boxX = W / 2 - boxW / 2;
   const boxY = 165;
-  const boxW = 320;
   const boxH = 55;
   const borderRadius = 10;
 
@@ -454,7 +457,7 @@ function handleCanvasPointer(x, y) {
     const sx = (W - w) / 2, sy = (H - h) / 2;
     const closeX = sx + w - 40;
     const closeY = sy + 16;
-    
+
     // Close button or outside click
     if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.daily = false;
@@ -481,7 +484,7 @@ function handleCanvasPointer(x, y) {
       const mBtnW = 140, mBtnH = 46;
       const mBtnX = sx + w - mBtnW - 40;
       const mBtnY = my + 22;
-      
+
       if (rectContains(mBtnX, mBtnY, mBtnW, mBtnH, x, y)) {
         if (claimDailyMission(m)) {
           ui.toast = 'Mission Reward Claimed!';
@@ -841,6 +844,21 @@ function activateSaveNameInput() {
   window.addEventListener('keydown', handleGlobalKeydown);
 }
 
+function setupRPSGame() {
+  const rpsBtn = document.getElementById('rpsGameBtn');
+  if (rpsBtn) {
+    rpsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!canPlayRPS()) {
+        ui.toast = 'Limit reached. Come back tomorrow!';
+        setTimeout(() => ui.toast = null, 2000);
+        return;
+      }
+      openRPSGame();
+    });
+  }
+}
+
 function setupUI() {
   // Add a generic click sound to all UI buttons
   document.querySelectorAll('button').forEach(btn => {
@@ -898,6 +916,13 @@ function setupUI() {
           ui.panels.controls = false;
           ui.panels.stats = false;
           ui.panels.shop = false;
+        } else if (panel === 'rps') {
+          if (!canPlayRPS()) {
+            ui.toast = 'Limit reached. Come back tomorrow!';
+            setTimeout(() => ui.toast = null, 2000);
+            return;
+          }
+          openRPSGame();
         } else if (panel === 'shop') {
           ui.panels.shop = !ui.panels.shop;
           ui.panels.controls = false;
@@ -1036,5 +1061,161 @@ function resizeCanvas() {
   }
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// ==========================================
+// RPS Mini Game Logic
+// ==========================================
+
+let currentRPSBet = 0;
+
+window.openRPSGame = function () {
+  const overlay = document.getElementById('rpsOverlay');
+  const betSelection = document.getElementById('rpsBetSelection');
+  const arena = document.getElementById('rpsArena');
+  const playsText = document.getElementById('rpsPlaysText');
+  const closeBtn = document.getElementById('rpsCloseBtn');
+  const playAgainBtn = document.getElementById('rpsPlayAgainBtn');
+
+  if (!overlay) return;
+
+  overlay.classList.remove('hidden');
+  betSelection.classList.remove('hidden');
+  arena.classList.add('hidden');
+  playAgainBtn.classList.add('hidden');
+
+  // Re-enable and reset bet buttons
+  document.querySelectorAll('.rps-bet-btn').forEach(b => {
+    b.disabled = false;
+    b.classList.remove('selected');
+  });
+
+  const playsLeft = 5 - getRPSPlays();
+  playsText.textContent = `Plays left today: ${playsLeft}/5`;
+  const totalCoinsText = document.getElementById('rpsTotalCoins');
+  if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+
+  closeBtn.onclick = () => overlay.classList.add('hidden');
+
+  document.querySelectorAll('.rps-bet-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      if (btn.disabled) return;
+      playSound('move');
+      document.querySelectorAll('.rps-bet-btn').forEach(b => b.disabled = true);
+
+      const bet = parseInt(e.target.getAttribute('data-bet'));
+      if (state.totalCoins < bet) {
+        ui.toast = 'Error: Not enough coins!';
+        setTimeout(() => { ui.toast = null; }, 2000);
+        document.querySelectorAll('.rps-bet-btn').forEach(b => b.disabled = false);
+        return;
+      }
+      currentRPSBet = bet;
+      document.getElementById('rpsCurrentBet').textContent = bet;
+      state.totalCoins -= bet;
+      if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+      savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+
+      e.target.classList.add('selected');
+      e.target.classList.add('bet-animating');
+      setTimeout(() => {
+        e.target.classList.remove('bet-animating');
+        betSelection.classList.add('hidden');
+        arena.classList.remove('hidden');
+        resetRPSArena();
+      }, 500);
+    };
+  });
+
+  document.querySelectorAll('.rps-action-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      playSound('move');
+      document.querySelectorAll('.rps-action-btn').forEach(b => b.disabled = true);
+      const playerChoice = parseInt(e.currentTarget.getAttribute('data-choice'));
+      playRPSMatch(playerChoice);
+    };
+  });
+
+  playAgainBtn.onclick = () => {
+    if (!canPlayRPS()) {
+      ui.toast = 'Daily limit reached! Come back tomorrow.';
+      setTimeout(() => { ui.toast = null; }, 2500);
+      overlay.classList.add('hidden');
+      return;
+    }
+    window.openRPSGame();
+  };
+}
+
+function resetRPSArena() {
+  const playerChoice = document.getElementById('rpsPlayerChoice');
+  const cpuChoice = document.getElementById('rpsCpuChoice');
+  playerChoice.textContent = '❓';
+  cpuChoice.textContent = '🐻‍❄️';
+  playerChoice.classList.remove('fly-to-center');
+  cpuChoice.classList.remove('fly-to-center');
+
+  const resultText = document.getElementById('rpsResultText');
+  resultText.textContent = 'VS';
+  resultText.style.color = '#333';
+  resultText.classList.remove('win-animating');
+
+  document.querySelectorAll('.rps-action-btn').forEach(b => b.disabled = false);
+  document.getElementById('rpsPlayAgainBtn').classList.add('hidden');
+}
+
+function playRPSMatch(playerChoice) {
+  incrementRPSPlays();
+  const playsLeft = 5 - getRPSPlays();
+  document.getElementById('rpsPlaysText').textContent = `Plays left today: ${playsLeft}/5`;
+
+  const cpuChoice = getCPUChoice();
+  const emojis = ['🪨', '📄', '✂️'];
+
+  const playerEmojiEl = document.getElementById('rpsPlayerChoice');
+  const cpuEmojiEl = document.getElementById('rpsCpuChoice');
+  const resultText = document.getElementById('rpsResultText');
+  const playAgainBtn = document.getElementById('rpsPlayAgainBtn');
+
+  playerEmojiEl.textContent = emojis[playerChoice];
+  cpuEmojiEl.textContent = emojis[cpuChoice];
+
+  playSound('shoot'); // Fly sound
+  playerEmojiEl.classList.add('fly-to-center');
+  cpuEmojiEl.classList.add('fly-to-center');
+  resultText.textContent = ''; // Clear VS during animation
+
+  setTimeout(() => {
+    playerEmojiEl.classList.remove('fly-to-center');
+    cpuEmojiEl.classList.remove('fly-to-center');
+
+    const result = playRPS(playerChoice, cpuChoice);
+
+    if (result === RPS_RESULTS.WIN) {
+      playSound('accelerate');
+      resultText.textContent = `YOU WIN +${currentRPSBet * 2}!`;
+      resultText.style.color = '#4CAF50';
+      resultText.classList.add('win-animating');
+      state.totalCoins += currentRPSBet * 2;
+    } else if (result === RPS_RESULTS.DRAW) {
+      playSound('pause');
+      resultText.textContent = `DRAW! Refunded ${currentRPSBet}`;
+      resultText.style.color = '#FF9800';
+      state.totalCoins += currentRPSBet;
+    } else {
+      playSound('crash');
+      resultText.textContent = `YOU LOSE! -${currentRPSBet}`;
+      resultText.style.color = '#F44336';
+    }
+
+    const totalCoinsText = document.getElementById('rpsTotalCoins');
+    if (totalCoinsText) totalCoinsText.textContent = `Coins: ${state.totalCoins}`;
+
+    savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+
+    setTimeout(() => {
+      playAgainBtn.classList.remove('hidden');
+    }, 2000);
+  }, 2000); // 2 second flying animation
+}
