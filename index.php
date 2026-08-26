@@ -50,6 +50,7 @@
         <img src="assets/settings.png" alt="Settings" />
       </button>
       <div id="quickMenu" class="quick-menu">
+        <button class="quick-action" data-panel="daily" type="button">Daily Rewards</button>
         <button class="quick-action" data-panel="stats" type="button">Stats</button>
         <button class="quick-action" data-panel="shop" type="button">Shop</button>
         <button class="quick-action" data-panel="controls" type="button">Help</button>

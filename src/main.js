@@ -5,6 +5,7 @@ import { playSound, stopAllActiveSounds, playBgMusic, stopBgMusic } from './audi
 import { collides, rectContains } from './utils/collision.js';
 import { clampSpeed, drawRoundedRect, $id, getSpeedKmh } from './utils/helpers.js';
 import { loadLeadersFromStorage, saveLeadersToStorage, addLeaderEntry, loadPlayerStats, savePlayerStats, loadInventory, saveInventory } from './utils/storage.js';
+import { checkDailyReset, loadDailyData, claimDailyLogin, claimDailyMission } from './utils/dailyTracker.js';
 import { createPlayer, moveLeft, moveRight, updatePlayerPosition } from './game/player.js';
 import { spawnObstacle, updateObstacles } from './game/obstacles.js';
 import { spawnCoin, updateCoins } from './game/coins.js';
@@ -14,7 +15,7 @@ import { addFloatingText, updateFloatingTexts } from './game/floatingText.js';
 import { resetToIdleScreen, startGame, togglePause } from './game/gameLoop.js';
 import { drawRoad, drawStartScreen, drawHUD, drawLoadingScreen, drawRotateToPortrait } from './ui/rendering.js';
 import { drawGameOverOverlay } from './ui/gameOverScreen.js';
-import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel } from './ui/panels.js';
+import { drawLeadersPanel, drawControlsPanel, drawStatsPanel, drawShopPanel, drawDailyPanel } from './ui/panels.js';
 import { renderGameObjects, renderCanvasControls, renderExplosion } from './ui/gameRenderer.js';
 
 let assetsReady = false;
@@ -232,6 +233,7 @@ function drawTopmostPanels() {
   if (ui.panels.controls) drawControlsPanel();
   if (ui.panels.stats) drawStatsPanel();
   if (ui.panels.shop) drawShopPanel();
+  if (ui.panels.daily) drawDailyPanel();
 }
 
 function loop() {
@@ -443,6 +445,51 @@ function handleCanvasPointer(x, y) {
     if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
       ui.panels.stats = false;
       ui.inputActive = false;
+    }
+    return;
+  }
+
+  if (ui.panels.daily) {
+    const w = 620, h = 600;
+    const sx = (W - w) / 2, sy = (H - h) / 2;
+    const closeX = sx + w - 40;
+    const closeY = sy + 16;
+    
+    // Close button or outside click
+    if (rectContains(closeX - 32, closeY - 32, 64, 64, x, y) || !rectContains(sx, sy, w, h, x, y)) {
+      ui.panels.daily = false;
+      ui.inputActive = false;
+      return;
+    }
+
+    // Check Login claim button
+    const loginBtnW = 160, loginBtnH = 50;
+    const loginBtnX = sx + w - loginBtnW - 26;
+    const loginBtnY = sy + 85;
+    if (rectContains(loginBtnX, loginBtnY, loginBtnW, loginBtnH, x, y)) {
+      if (claimDailyLogin()) {
+        ui.toast = 'Daily Login Claimed!';
+        setTimeout(() => ui.toast = null, 1500);
+      }
+      return;
+    }
+
+    // Check Missions claim buttons
+    const missions = ['carsShot', 'oilDestroyed', 'ammosCollected'];
+    let my = sy + 280;
+    for (let m of missions) {
+      const mBtnW = 140, mBtnH = 46;
+      const mBtnX = sx + w - mBtnW - 40;
+      const mBtnY = my + 22;
+      
+      if (rectContains(mBtnX, mBtnY, mBtnW, mBtnH, x, y)) {
+        if (claimDailyMission(m)) {
+          ui.toast = 'Mission Reward Claimed!';
+          setTimeout(() => ui.toast = null, 1500);
+        }
+        return; // Click handled
+      }
+      my += 105;
     }
     return;
   }
@@ -838,10 +885,18 @@ function setupUI() {
           ui.panels.controls = false;
           ui.panels.stats = false;
           ui.panels.shop = false;
+          ui.panels.daily = false;
         } else if (panel === 'stats') {
           ui.panels.stats = !ui.panels.stats;
-          ui.panels.controls = false;
           ui.panels.leaders = false;
+          ui.panels.controls = false;
+          ui.panels.shop = false;
+          ui.panels.daily = false;
+        } else if (panel === 'daily') {
+          ui.panels.daily = !ui.panels.daily;
+          ui.panels.leaders = false;
+          ui.panels.controls = false;
+          ui.panels.stats = false;
           ui.panels.shop = false;
         } else if (panel === 'shop') {
           ui.panels.shop = !ui.panels.shop;
@@ -945,6 +1000,11 @@ preloadAssets().then(() => {
     state.selectedCar = inv.selectedCar;
     state.gunLevel = inv.gunLevel || 1;
     state.bulletsRemaining = state.gunLevel * 10;
+
+    const dailyData = checkDailyReset();
+    if (!dailyData.loginClaimed) {
+      ui.panels.daily = true;
+    }
 
     setupUI();
     fetchLeaders();
