@@ -25,10 +25,11 @@ export function drawRoad() {
 }
 
 export function drawStartScreen() {
-  const btnW = 260;
-  const btnH = 80;
+  const btnW = 320;
+  const btnH = 70;
   const btnX = (W - btnW) / 2;
-  const btnY = (H - btnH) / 2;
+  const easyBtnY = H / 2 + 10;
+  const hardBtnY = easyBtnY + btnH + 20;
 
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -37,7 +38,7 @@ export function drawStartScreen() {
   const title = "ROAD FIGHTER";
   const colors = ["#EA4335", "#4285F4", "#FBBC04", "#34A853", "#EA4335", "#4285F4", "#FBBC04", "#34A853", "#EA4335", "#4285F4", "#FBBC04", "#34A853"];
   const titleFontSize = 64;
-  const titleY = btnY - 80;
+  const titleY = H / 2 - 120;
 
   ctx.font = `bold ${titleFontSize}px sans-serif`;
   ctx.textAlign = "center";
@@ -70,8 +71,9 @@ export function drawStartScreen() {
     ctx.fillText(char, xOffset + ctx.measureText(title.substring(0, i)).width + ctx.measureText(char).width / 2, waveY);
   }
 
+  // Easy Button
   ctx.fillStyle = "#00c853";
-  drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 20);
+  drawRoundedRect(ctx, btnX, easyBtnY, btnW, btnH, 20);
   ctx.fill();
 
   ctx.strokeStyle = "#fff";
@@ -79,8 +81,17 @@ export function drawStartScreen() {
   ctx.stroke();
 
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 36px sans-serif";
-  ctx.fillText("START", W / 2, btnY + 42);
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillText("EASY (Day Only)", W / 2, easyBtnY + btnH/2 + 3);
+
+  // Hard Button
+  ctx.fillStyle = "#EA4335";
+  drawRoundedRect(ctx, btnX, hardBtnY, btnW, btnH, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#fff";
+  ctx.fillText("HARD (Day/Night)", W / 2, hardBtnY + btnH/2 + 3);
 
   ctx.restore();
 }

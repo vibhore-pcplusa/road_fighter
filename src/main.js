@@ -171,6 +171,13 @@ function update() {
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
+  
+  // Calculate day/night cycle based on 800m intervals (0 = day, 1 = night)
+  if (state.difficultyMode === 'hard') {
+    state.nightMode = (-Math.cos(state.distance * Math.PI / 800) + 1) / 2;
+  } else {
+    state.nightMode = 0;
+  }
 
   if (state.distance >= state.lastAmmoDistance + 200) {
     state.lastAmmoDistance += 200;
@@ -584,9 +591,15 @@ function handleCanvasPointer(x, y) {
   }
 
   if (!state.running && state.player.alive) {
-    const btnW = 260, btnH = 80, btnX = (W - btnW) / 2, btnY = (H - btnH) / 2;
-    if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
-      startGame();
+    const btnW = 320, btnH = 70;
+    const btnX = (W - btnW) / 2;
+    const easyBtnY = H / 2 + 10;
+    const hardBtnY = easyBtnY + btnH + 20;
+    
+    if (rectContains(btnX, easyBtnY, btnW, btnH, x, y)) {
+      startGame('easy');
+    } else if (rectContains(btnX, hardBtnY, btnW, btnH, x, y)) {
+      startGame('hard');
     }
     return;
   }
