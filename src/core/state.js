@@ -36,6 +36,8 @@ export const state = {
   totalCoins: 0,
   unlockedCars: ['mycar'],
   selectedCar: 'mycar',
+  unlockedDrivers: [],
+  selectedDriver: null,
   gunLevel: 1,
   lastRuns: []
 };
@@ -43,6 +45,7 @@ export const state = {
 export const ui = {
   pauseLabel: 'Pause',
   panels: { save: false, leaders: false, controls: false, stats: false, shop: false, daily: false },
+  shopTab: 'cars',
   toast: null,
   touchVisible: false,
   saveMessage: '',

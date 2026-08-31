@@ -57,6 +57,18 @@ export function renderGameObjects(images, trees, controlImgs) {
   const carImg = images[state.selectedCar] || images.mycar;
   if (carImg && carImg.complete && carImg.naturalWidth && carImg.naturalWidth > 0) {
     ctx.drawImage(carImg, 0, 0, p.width, p.height);
+    
+    // Draw driver if selected
+    if (state.selectedDriver) {
+      const driverImg = images[state.selectedDriver];
+      if (driverImg && driverImg.complete && driverImg.naturalWidth && driverImg.naturalWidth > 0) {
+        const dw = p.width * 0.7; // 70% of car width
+        const dh = p.height * 0.7; // 70% of car height
+        const dx = (p.width - dw) / 2; // Center horizontally
+        const dy = p.height * 0.15; // Slightly above center
+        ctx.drawImage(driverImg, dx, dy, dw, dh);
+      }
+    }
   } else {
     ctx.fillStyle = p.color;
     ctx.fillRect(0, 0, p.width, p.height);
