@@ -427,6 +427,7 @@ export function drawShopPanel() {
   } else {
     // Drivers Tab
     const drivers = [
+      { id: 'driver_none', name: 'No Driver', price: 0 },
       { id: 'driver_alex', name: 'Alex', price: 10000 },
       { id: 'driver_gaurav', name: 'Gaurav', price: 20000 },
       { id: 'driver_helina', name: 'Helina', price: 30000 },
@@ -474,8 +475,8 @@ export function drawShopPanel() {
       const btnX = x + w - 30 - btnW;
       const btnY = itemY + 27;
       
-      const isUnlocked = state.unlockedDrivers.includes(driver.id);
-      const isSelected = state.selectedDriver === driver.id;
+      const isUnlocked = driver.id === 'driver_none' || state.unlockedDrivers.includes(driver.id);
+      const isSelected = (driver.id === 'driver_none' && state.selectedDriver === null) || state.selectedDriver === driver.id;
       
       if (isSelected) {
         ctx.fillStyle = '#888';

@@ -171,7 +171,7 @@ function update() {
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
-  
+
   // Calculate day/night cycle based on 800m intervals (0 = day, 1 = night)
   if (state.difficultyMode === 'hard') {
     state.nightMode = (-Math.cos(state.distance * Math.PI / 800) + 1) / 2;
@@ -550,7 +550,7 @@ function handleCanvasPointer(x, y) {
         const car = cars[i];
         const itemY = startY - scrollOffset + i * itemHeight;
         if (itemY > sy + h - 20 || itemY + itemHeight < startY) continue;
-        
+
         const btnW = 140, btnH = 46;
         const btnX = sx + w - 30 - btnW;
         const btnY = itemY + 27;
@@ -597,6 +597,7 @@ function handleCanvasPointer(x, y) {
       }
     } else if (ui.shopTab === 'drivers') {
       const drivers = [
+        { id: 'driver_none', price: 0 },
         { id: 'driver_alex', price: 10000 },
         { id: 'driver_gaurav', price: 20000 },
         { id: 'driver_helina', price: 30000 },
@@ -617,8 +618,8 @@ function handleCanvasPointer(x, y) {
         const btnY = itemY + 27;
 
         if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
-          if (state.unlockedDrivers.includes(driver.id)) {
-            state.selectedDriver = driver.id;
+          if (driver.id === 'driver_none' || state.unlockedDrivers.includes(driver.id)) {
+            state.selectedDriver = driver.id === 'driver_none' ? null : driver.id;
             saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
           } else if (state.totalCoins >= driver.price) {
             state.totalCoins -= driver.price;
@@ -655,7 +656,7 @@ function handleCanvasPointer(x, y) {
     const btnX = (W - btnW) / 2;
     const easyBtnY = H / 2 + 10;
     const hardBtnY = easyBtnY + btnH + 20;
-    
+
     if (rectContains(btnX, easyBtnY, btnW, btnH, x, y)) {
       startGame('easy');
     } else if (rectContains(btnX, hardBtnY, btnW, btnH, x, y)) {
@@ -1046,7 +1047,7 @@ function setupUI() {
     } else if (ui.panels.shop) {
       if (!ui.shopScrollY) ui.shopScrollY = 0;
       ui.shopScrollY += e.deltaY;
-      const itemCount = ui.shopTab === 'cars' ? 5 : 9; // 4 cars + 1 gun OR 9 drivers
+      const itemCount = ui.shopTab === 'cars' ? 5 : 10; // 4 cars + 1 gun OR 10 drivers
       const maxScroll = Math.max(0, itemCount * 100 + 130 - 640);
       ui.shopScrollY = Math.max(0, Math.min(maxScroll, ui.shopScrollY));
       e.preventDefault();
@@ -1084,7 +1085,7 @@ function setupUI() {
       } else if (ui.panels.shop) {
         if (!ui.shopScrollY) ui.shopScrollY = 0;
         ui.shopScrollY -= deltaY * scale; // inverted drag scroll logic compared to stats? Wait, stats does += deltaY, meaning dragging down increases scrollY.
-        const itemCount = ui.shopTab === 'cars' ? 5 : 9;
+        const itemCount = ui.shopTab === 'cars' ? 5 : 10;
         const maxScroll = Math.max(0, itemCount * 100 + 130 - 640);
         ui.shopScrollY = Math.max(0, Math.min(maxScroll, ui.shopScrollY));
       }
@@ -1113,6 +1114,8 @@ preloadAssets().then(() => {
     const inv = loadInventory();
     state.unlockedCars = inv.unlockedCars;
     state.selectedCar = inv.selectedCar;
+    state.unlockedDrivers = inv.unlockedDrivers;
+    state.selectedDriver = inv.selectedDriver;
     state.gunLevel = inv.gunLevel || 1;
     state.bulletsRemaining = state.gunLevel * 10;
 
@@ -1166,7 +1169,7 @@ function showRPSToast(msg, isError = false) {
   el.textContent = msg;
   el.classList.remove('hidden');
   el.style.color = isError ? 'red' : '#333';
-  
+
   if (el.timeoutId) clearTimeout(el.timeoutId);
   el.timeoutId = setTimeout(() => {
     el.classList.add('hidden');
