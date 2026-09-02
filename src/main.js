@@ -122,25 +122,32 @@ function update() {
   if (!state.running || state.paused) return;
 
   state.frames++;
-  const isBraking = ui.holding === 'brake';
+  const isBraking = ui.activeControls.down;
 
-  if (ui.holding) {
+  const anyActive = ui.activeControls.up || ui.activeControls.down || ui.activeControls.left || ui.activeControls.right;
+  if (anyActive) {
     ui.holdFrames++;
-    if (ui.holding === 'accelerate') {
-      state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.02);
-    } else if (ui.holding === 'brake') {
-      state.speedTarget = Math.max(0, state.speedTarget - 0.12);
-    } else if (ui.holding === 'left' && ui.holdFrames % 12 === 0) {
-      moveLeft(state, playSound);
-    } else if (ui.holding === 'right' && ui.holdFrames % 12 === 0) {
-      moveRight(state, playSound);
-    }
+  } else {
+    ui.holdFrames = 0;
+  }
+
+  if (ui.activeControls.up) {
+    state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.02);
+  } else if (ui.activeControls.down) {
+    state.speedTarget = Math.max(0, state.speedTarget - 0.12);
   } else {
     if (state.speedTarget < state.minSpeed) {
       state.speedTarget = Math.min(state.minSpeed, state.speedTarget + 0.015);
     } else {
       state.speedTarget = Math.max(state.minSpeed, state.speedTarget - 0.015);
     }
+  }
+
+  if (ui.activeControls.left && ui.holdFrames % 12 === 0) {
+    moveLeft(state, playSound);
+  }
+  if (ui.activeControls.right && ui.holdFrames % 12 === 0) {
+    moveRight(state, playSound);
   }
 
   state.speed += (state.speedTarget - state.speed) * 0.12;
@@ -171,7 +178,7 @@ function update() {
   updateFloatingTexts(state);
 
   state.distance += state.speed * 0.1;
-  
+
   // Calculate day/night cycle based on 800m intervals (0 = day, 1 = night)
   if (state.difficultyMode === 'hard') {
     state.nightMode = (-Math.cos(state.distance * Math.PI / 800) + 1) / 2;
@@ -434,6 +441,25 @@ function fetchLeaders() {
   });
 }
 
+function getControlKey(x, y) {
+  if (ui.panels.save || ui.panels.leaders || ui.panels.controls || ui.panels.stats || ui.panels.shop || ui.panels.daily) {
+    return null;
+  }
+  if (!state.running || state.paused) {
+    return null;
+  }
+  if (ui._controlPos) {
+    for (const k of ['up', 'down', 'left', 'right']) {
+      const p = ui._controlPos[k];
+      const size = 85;
+      if (Math.hypot(x - p.x, y - p.y) <= size) {
+        return k;
+      }
+    }
+  }
+  return null;
+}
+
 function handleCanvasPointer(x, y) {
   if (ui.panels.leaders) {
     const w = 560, h = 550;
@@ -520,59 +546,120 @@ function handleCanvasPointer(x, y) {
       return;
     }
 
-    // Check shop interactions
-    const cars = [
-      { id: 'mycar', price: 0 },
-      { id: 'red', price: 5000 },
-      { id: 'blue', price: 15000 },
-      { id: 'green', price: 50000 }
-    ];
-    const itemHeight = 100;
-    const startY = sy + 120;
-    for (let i = 0; i < cars.length; i++) {
-      const car = cars[i];
-      const itemY = startY + i * itemHeight;
-      const btnW = 140, btnH = 46;
-      const btnX = sx + w - 30 - btnW;
-      const btnY = itemY + 27;
-
-      if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
-        if (state.unlockedCars.includes(car.id)) {
-          state.selectedCar = car.id;
-          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
-        } else if (state.totalCoins >= car.price) {
-          state.totalCoins -= car.price;
-          state.unlockedCars.push(car.id);
-          state.selectedCar = car.id;
-          savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
-          saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
-        } else {
-          ui.toast = 'Not enough coins!';
-          setTimeout(() => ui.toast = null, 1500);
-        }
-        return;
-      }
+    const tabY = sy + 80;
+    const tabW = (w - 32) / 2;
+    // Cars Tab Click
+    if (rectContains(sx + 16, tabY, tabW, 40, x, y)) {
+      ui.shopTab = 'cars';
+      ui.shopScrollY = 0;
+      return;
+    }
+    // Drivers Tab Click
+    if (rectContains(sx + 16 + tabW, tabY, tabW, 40, x, y)) {
+      ui.shopTab = 'drivers';
+      ui.shopScrollY = 0;
+      return;
     }
 
-    const i = cars.length;
-    const gunItemY = startY + i * itemHeight;
-    const uBtnW = 140, uBtnH = 46;
-    const uBtnX = sx + w - 30 - uBtnW;
-    const uBtnY = gunItemY + 27;
+    const startY = sy + 130;
+    const scrollOffset = ui.shopScrollY || 0;
+    const itemHeight = 100;
 
-    if (rectContains(uBtnX, uBtnY, uBtnW, uBtnH, x, y)) {
-      const lvl = state.gunLevel || 1;
-      const upgradeCost = 10000 * Math.pow(2, lvl - 1);
-      if (state.totalCoins >= upgradeCost) {
-        state.totalCoins -= upgradeCost;
-        state.gunLevel = lvl + 1;
-        savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
-        saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, gunLevel: state.gunLevel });
-      } else {
-        ui.toast = 'Not enough coins!';
-        setTimeout(() => ui.toast = null, 1500);
+    if (ui.shopTab === 'cars') {
+      const cars = [
+        { id: 'mycar', price: 0 },
+        { id: 'red', price: 5000 },
+        { id: 'blue', price: 15000 },
+        { id: 'green', price: 50000 }
+      ];
+      for (let i = 0; i < cars.length; i++) {
+        const car = cars[i];
+        const itemY = startY - scrollOffset + i * itemHeight;
+        if (itemY > sy + h - 20 || itemY + itemHeight < startY) continue;
+
+        const btnW = 140, btnH = 46;
+        const btnX = sx + w - 30 - btnW;
+        const btnY = itemY + 27;
+
+        if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
+          if (state.unlockedCars.includes(car.id)) {
+            state.selectedCar = car.id;
+            saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
+          } else if (state.totalCoins >= car.price) {
+            state.totalCoins -= car.price;
+            state.unlockedCars.push(car.id);
+            state.selectedCar = car.id;
+            savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+            saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
+          } else {
+            ui.toast = 'Not enough coins!';
+            setTimeout(() => ui.toast = null, 1500);
+          }
+          return;
+        }
       }
-      return;
+
+      const i = cars.length;
+      const gunItemY = startY - scrollOffset + i * itemHeight;
+      if (gunItemY <= sy + h - 20 && gunItemY + itemHeight >= startY) {
+        const uBtnW = 140, uBtnH = 46;
+        const uBtnX = sx + w - 30 - uBtnW;
+        const uBtnY = gunItemY + 27;
+
+        if (rectContains(uBtnX, uBtnY, uBtnW, uBtnH, x, y)) {
+          const lvl = state.gunLevel || 1;
+          const upgradeCost = 10000 * Math.pow(2, lvl - 1);
+          if (state.totalCoins >= upgradeCost) {
+            state.totalCoins -= upgradeCost;
+            state.gunLevel = lvl + 1;
+            savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+            saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
+          } else {
+            ui.toast = 'Not enough coins!';
+            setTimeout(() => ui.toast = null, 1500);
+          }
+          return;
+        }
+      }
+    } else if (ui.shopTab === 'drivers') {
+      const drivers = [
+        { id: 'driver_none', price: 0 },
+        { id: 'driver_alex', price: 10000 },
+        { id: 'driver_gaurav', price: 20000 },
+        { id: 'driver_helina', price: 30000 },
+        { id: 'driver_jasmine', price: 40000 },
+        { id: 'driver_mathew', price: 50000 },
+        { id: 'driver_nina', price: 60000 },
+        { id: 'driver_paul', price: 70000 },
+        { id: 'driver_rahul', price: 80000 },
+        { id: 'driver_vibhore', price: 90000 }
+      ];
+      for (let i = 0; i < drivers.length; i++) {
+        const driver = drivers[i];
+        const itemY = startY - scrollOffset + i * itemHeight;
+        if (itemY > sy + h - 20 || itemY + itemHeight < startY) continue;
+
+        const btnW = 140, btnH = 46;
+        const btnX = sx + w - 30 - btnW;
+        const btnY = itemY + 27;
+
+        if (rectContains(btnX, btnY, btnW, btnH, x, y)) {
+          if (driver.id === 'driver_none' || state.unlockedDrivers.includes(driver.id)) {
+            state.selectedDriver = driver.id === 'driver_none' ? null : driver.id;
+            saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
+          } else if (state.totalCoins >= driver.price) {
+            state.totalCoins -= driver.price;
+            state.unlockedDrivers.push(driver.id);
+            state.selectedDriver = driver.id;
+            savePlayerStats({ totalCoins: state.totalCoins, lastRuns: state.lastRuns });
+            saveInventory({ unlockedCars: state.unlockedCars, selectedCar: state.selectedCar, unlockedDrivers: state.unlockedDrivers, selectedDriver: state.selectedDriver, gunLevel: state.gunLevel });
+          } else {
+            ui.toast = 'Not enough coins!';
+            setTimeout(() => ui.toast = null, 1500);
+          }
+          return;
+        }
+      }
     }
 
     return;
@@ -595,7 +682,7 @@ function handleCanvasPointer(x, y) {
     const btnX = (W - btnW) / 2;
     const easyBtnY = H / 2 + 10;
     const hardBtnY = easyBtnY + btnH + 20;
-    
+
     if (rectContains(btnX, easyBtnY, btnW, btnH, x, y)) {
       startGame('easy');
     } else if (rectContains(btnX, hardBtnY, btnW, btnH, x, y)) {
@@ -666,32 +753,7 @@ function handleCanvasPointer(x, y) {
     }
   }
 
-  if (ui._controlPos) {
-    for (const k of ['up', 'down', 'left', 'right']) {
-      const p = ui._controlPos[k];
-      const size = 76;
-      if (Math.hypot(x - p.x, y - p.y) <= size) {
-        if (k === 'left') {
-          moveLeft(state, playSound);
-          ui.holding = 'left';
-          ui.holdFrames = 0;
-        } else if (k === 'right') {
-          moveRight(state, playSound);
-          ui.holding = 'right';
-          ui.holdFrames = 0;
-        } else if (k === 'up') {
-          state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 1);
-          ui.holding = 'accelerate';
-          ui.holdFrames = 0;
-        } else if (k === 'down') {
-          state.speedTarget = Math.max(0, state.speedTarget - 1);
-          ui.holding = 'brake';
-          ui.holdFrames = 0;
-        }
-        return;
-      }
-    }
-  }
+  // Control handling moved to getControlKey and pointerdown
 
   const btnW = 120, btnH = 44;
   const bx = 18, by = 48;
@@ -883,10 +945,13 @@ function setupUI() {
   // Gun button
   const gunToggle = document.getElementById('gunToggle');
   if (gunToggle) {
-    gunToggle.addEventListener('click', function (e) {
+    const fireAction = function (e) {
       e.stopPropagation();
+      if (e.cancelable && e.type === 'touchstart') e.preventDefault(); // prevent synthesized click and canvas interruption
       shootBullet(state, ui);
-    });
+    };
+    gunToggle.addEventListener('touchstart', fireAction, { passive: false });
+    gunToggle.addEventListener('mousedown', fireAction);
   }
 
   // Settings menu toggle
@@ -983,6 +1048,13 @@ function setupUI() {
       const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
       ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
       e.preventDefault();
+    } else if (ui.panels.shop) {
+      if (!ui.shopScrollY) ui.shopScrollY = 0;
+      ui.shopScrollY += e.deltaY;
+      const itemCount = ui.shopTab === 'cars' ? 5 : 10; // 4 cars + 1 gun OR 10 drivers
+      const maxScroll = Math.max(0, itemCount * 100 + 130 - 640);
+      ui.shopScrollY = Math.max(0, Math.min(maxScroll, ui.shopScrollY));
+      e.preventDefault();
     }
   }, { passive: false });
 
@@ -994,34 +1066,84 @@ function setupUI() {
     if (ui.panels.stats) {
       isDraggingStats = true;
       lastTouchY = e.clientY;
+    } else if (ui.panels.shop) {
+      isDraggingStats = true; // reuse flag for shop scroll
+      lastTouchY = e.clientY;
+    }
+
+    const ctrlKey = getControlKey(x, y);
+    if (ctrlKey) {
+      ui.activePointers[e.pointerId] = ctrlKey;
+      ui.activeControls[ctrlKey] = true;
+      if (ctrlKey === 'left' || ctrlKey === 'right') {
+        ui.holdFrames = 0;
+      } else if (ctrlKey === 'up') {
+        state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 1);
+      } else if (ctrlKey === 'down') {
+        state.speedTarget = Math.max(0, state.speedTarget - 1);
+      }
+      return;
     }
 
     handleCanvasPointer(x, y);
   });
 
   canvas.addEventListener('pointermove', function (e) {
-    if (ui.panels.stats && isDraggingStats) {
+    if (isDraggingStats) {
       const deltaY = e.clientY - lastTouchY;
-      // Scale deltaY to canvas coordinates approximately
       const rect = canvas.getBoundingClientRect();
       const scale = canvas.height / rect.height;
 
-      ui.statsScrollY += deltaY * scale;
-      const listLength = state.lastRuns ? state.lastRuns.length : 0;
-      const rowHeight = 70;
-      const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
-      ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      if (ui.panels.stats) {
+        ui.statsScrollY += deltaY * scale;
+        const listLength = state.lastRuns ? state.lastRuns.length : 0;
+        const rowHeight = 70;
+        const maxScroll = Math.max(0, listLength * rowHeight + 430 - 400);
+        ui.statsScrollY = Math.max(-maxScroll, Math.min(0, ui.statsScrollY));
+      } else if (ui.panels.shop) {
+        if (!ui.shopScrollY) ui.shopScrollY = 0;
+        ui.shopScrollY -= deltaY * scale; // inverted drag scroll logic compared to stats? Wait, stats does += deltaY, meaning dragging down increases scrollY.
+        const itemCount = ui.shopTab === 'cars' ? 5 : 10;
+        const maxScroll = Math.max(0, itemCount * 100 + 130 - 640);
+        ui.shopScrollY = Math.max(0, Math.min(maxScroll, ui.shopScrollY));
+      }
 
       lastTouchY = e.clientY;
+    } else if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const ctrlKey = getControlKey(x, y);
+      
+      if (ui.activePointers[e.pointerId] !== undefined || ctrlKey) {
+        const oldKey = ui.activePointers[e.pointerId];
+        if (oldKey && oldKey !== ctrlKey) {
+          ui.activeControls[oldKey] = false;
+        }
+        if (ctrlKey) {
+          ui.activePointers[e.pointerId] = ctrlKey;
+          ui.activeControls[ctrlKey] = true;
+        } else {
+          delete ui.activePointers[e.pointerId];
+        }
+      }
     }
   });
 
-  canvas.addEventListener('pointerup', function (e) {
+  function handlePointerUp(e) {
     isDraggingStats = false;
-    if (ui.inputActive) return;
-    ui.holding = null;
-    ui.holdFrames = 0;
-  });
+    const key = ui.activePointers[e.pointerId];
+    if (key) {
+      ui.activeControls[key] = false;
+      delete ui.activePointers[e.pointerId];
+    }
+    if (Object.keys(ui.activePointers).length === 0) {
+      ui.holdFrames = 0;
+    }
+  }
+
+  canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('pointercancel', handlePointerUp);
 }
 
 window.startGame = startGame;
@@ -1036,6 +1158,8 @@ preloadAssets().then(() => {
     const inv = loadInventory();
     state.unlockedCars = inv.unlockedCars;
     state.selectedCar = inv.selectedCar;
+    state.unlockedDrivers = inv.unlockedDrivers;
+    state.selectedDriver = inv.selectedDriver;
     state.gunLevel = inv.gunLevel || 1;
     state.bulletsRemaining = state.gunLevel * 10;
 
@@ -1089,7 +1213,7 @@ function showRPSToast(msg, isError = false) {
   el.textContent = msg;
   el.classList.remove('hidden');
   el.style.color = isError ? 'red' : '#333';
-  
+
   if (el.timeoutId) clearTimeout(el.timeoutId);
   el.timeoutId = setTimeout(() => {
     el.classList.add('hidden');

@@ -275,129 +275,234 @@ export function drawShopPanel() {
   ctx.fillStyle = '#fff';
   ctx.font = '32px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('Car Shop', x + 26, y + 52);
+  ctx.fillText('Garage Shop', x + 26, y + 52);
 
   ctx.fillStyle = '#FFD700';
   ctx.font = 'bold 28px sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('Coins: ' + state.totalCoins, x + w - 30, y + 52);
 
-  const cars = [
-    { id: 'mycar', name: 'Default', price: 0 },
-    { id: 'red', name: 'Red Car', price: 5000 },
-    { id: 'blue', name: 'Blue Car', price: 15000 },
-    { id: 'green', name: 'Green Car', price: 50000 }
-  ];
-  
+  // Draw Tabs
+  const tabY = y + 80;
+  const tabW = (w - 32) / 2;
+  ctx.fillStyle = ui.shopTab === 'cars' ? 'rgba(20, 150, 20, 0.8)' : 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(x + 16, tabY, tabW, 40);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Cars & Upgrades', x + 16 + tabW / 2, tabY + 28);
+
+  ctx.fillStyle = ui.shopTab === 'drivers' ? 'rgba(20, 150, 20, 0.8)' : 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(x + 16 + tabW, tabY, tabW, 40);
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Drivers', x + 16 + tabW + tabW / 2, tabY + 28);
+
   const images = getImages();
-  const startY = y + 120;
+  const startY = tabY + 50;
   const itemHeight = 100;
+
+  // Clip area for scrolling
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 16, startY, w - 32, h - (startY - y) - 20);
+  ctx.clip();
   
-  for (let i = 0; i < cars.length; i++) {
-    const car = cars[i];
-    const itemY = startY + i * itemHeight;
+  // Use ui.shopScrollY (default 0)
+  if (!ui.shopScrollY) ui.shopScrollY = 0;
+  const scrollOffset = ui.shopScrollY;
+
+  if (ui.shopTab === 'cars') {
+    const cars = [
+      { id: 'mycar', name: 'Default', price: 0 },
+      { id: 'red', name: 'Red Car', price: 5000 },
+      { id: 'blue', name: 'Blue Car', price: 15000 },
+      { id: 'green', name: 'Green Car', price: 50000 }
+    ];
     
+    for (let i = 0; i < cars.length; i++) {
+      const car = cars[i];
+      const itemY = startY - scrollOffset + i * itemHeight;
+      if (itemY > startY + h || itemY + itemHeight < startY) continue;
+      
+      if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(x + 16, itemY, w - 32, itemHeight);
+      }
+      
+      // Draw car sprite
+      const img = images[car.id];
+      if (img && img.complete) {
+        const scale = 80 / img.height;
+        const imgW = img.width * scale;
+        const imgH = img.height * scale;
+        ctx.drawImage(img, x + 30 + (60 - imgW)/2, itemY + (itemHeight - imgH)/2, imgW, imgH);
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x + 40, itemY + 20, 40, 60);
+      }
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(car.name, x + 120, itemY + 45);
+      
+      if (car.price > 0) {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '22px sans-serif';
+        ctx.fillText(car.price + ' Coins', x + 120, itemY + 75);
+      } else {
+        ctx.fillStyle = '#aaa';
+        ctx.font = '22px sans-serif';
+        ctx.fillText('Free', x + 120, itemY + 75);
+      }
+
+      // Button
+      const btnW = 140, btnH = 46;
+      const btnX = x + w - 30 - btnW;
+      const btnY = itemY + 27;
+      
+      const isUnlocked = state.unlockedCars.includes(car.id);
+      const isSelected = state.selectedCar === car.id;
+      
+      if (isSelected) {
+        ctx.fillStyle = '#888';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Selected', btnX + btnW/2, btnY + 30);
+      } else if (isUnlocked) {
+        ctx.fillStyle = '#2196F3';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Select', btnX + btnW/2, btnY + 30);
+      } else {
+        ctx.fillStyle = state.totalCoins >= car.price ? '#4CAF50' : '#d32f2f';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Buy', btnX + btnW/2, btnY + 30);
+      }
+    }
+
+    // Draw Gun Upgrade
+    const i = cars.length;
+    const gunItemY = startY - scrollOffset + i * itemHeight;
     if (i % 2 === 0) {
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fillRect(x + 16, itemY, w - 32, itemHeight);
+      ctx.fillRect(x + 16, gunItemY, w - 32, itemHeight);
     }
-    
-    // Draw car sprite
-    const img = images[car.id];
-    if (img && img.complete) {
-      // Draw centered in a 60x100 box
-      const scale = 80 / img.height;
-      const imgW = img.width * scale;
-      const imgH = img.height * scale;
-      ctx.drawImage(img, x + 30 + (60 - imgW)/2, itemY + (itemHeight - imgH)/2, imgW, imgH);
-    } else {
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(x + 40, itemY + 20, 40, 60);
-    }
-    
+
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(x + 40, gunItemY + 20, 40, 60);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('AMMO', x + 60, gunItemY + 50);
+
+    const lvl = state.gunLevel || 1;
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 26px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(car.name, x + 120, itemY + 45);
-    
-    if (car.price > 0) {
+    ctx.fillText('Gun Upgrade (Lv ' + lvl + ')', x + 120, gunItemY + 45);
+
+    const upgradeCost = 10000 * Math.pow(2, lvl - 1);
+    ctx.fillStyle = '#FFD700';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(upgradeCost + ' Coins (+10 Max)', x + 120, gunItemY + 75);
+
+    const uBtnW = 140, uBtnH = 46;
+    const uBtnX = x + w - 30 - uBtnW;
+    const uBtnY = gunItemY + 27;
+
+    ctx.fillStyle = state.totalCoins >= upgradeCost ? '#9C27B0' : '#d32f2f'; // Purple for upgrade
+    drawRoundedRect(ctx, uBtnX, uBtnY, uBtnW, uBtnH, 8);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Upgrade', uBtnX + uBtnW / 2, uBtnY + 30);
+  } else {
+    // Drivers Tab
+    const drivers = [
+      { id: 'driver_none', name: 'No Driver', price: 0 },
+      { id: 'driver_alex', name: 'Alex', price: 10000 },
+      { id: 'driver_gaurav', name: 'Gaurav', price: 20000 },
+      { id: 'driver_helina', name: 'Helina', price: 30000 },
+      { id: 'driver_jasmine', name: 'Jasmine', price: 40000 },
+      { id: 'driver_mathew', name: 'Mathew', price: 50000 },
+      { id: 'driver_nina', name: 'Nina', price: 60000 },
+      { id: 'driver_paul', name: 'Paul', price: 70000 },
+      { id: 'driver_rahul', name: 'Rahul', price: 80000 },
+      { id: 'driver_vibhore', name: 'Vibhore', price: 90000 }
+    ];
+
+    for (let i = 0; i < drivers.length; i++) {
+      const driver = drivers[i];
+      const itemY = startY - scrollOffset + i * itemHeight;
+      if (itemY > startY + h || itemY + itemHeight < startY) continue;
+      
+      if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(x + 16, itemY, w - 32, itemHeight);
+      }
+      
+      // Draw driver sprite
+      const img = images[driver.id];
+      if (img && img.complete) {
+        const scale = 80 / img.height;
+        const imgW = img.width * scale;
+        const imgH = img.height * scale;
+        ctx.drawImage(img, x + 30 + (60 - imgW)/2, itemY + (itemHeight - imgH)/2, imgW, imgH);
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x + 40, itemY + 20, 40, 60);
+      }
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(driver.name, x + 120, itemY + 45);
+      
       ctx.fillStyle = '#FFD700';
       ctx.font = '22px sans-serif';
-      ctx.fillText(car.price + ' Coins', x + 120, itemY + 75);
-    } else {
-      ctx.fillStyle = '#aaa';
-      ctx.font = '22px sans-serif';
-      ctx.fillText('Free', x + 120, itemY + 75);
-    }
+      ctx.fillText(driver.price + ' Coins', x + 120, itemY + 75);
 
-    // Button
-    const btnW = 140, btnH = 46;
-    const btnX = x + w - 30 - btnW;
-    const btnY = itemY + 27;
-    
-    const isUnlocked = state.unlockedCars.includes(car.id);
-    const isSelected = state.selectedCar === car.id;
-    
-    if (isSelected) {
-      ctx.fillStyle = '#888';
-      drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Selected', btnX + btnW/2, btnY + 30);
-    } else if (isUnlocked) {
-      ctx.fillStyle = '#2196F3';
-      drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Select', btnX + btnW/2, btnY + 30);
-    } else {
-      ctx.fillStyle = state.totalCoins >= car.price ? '#4CAF50' : '#d32f2f';
-      drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Buy', btnX + btnW/2, btnY + 30);
+      // Button
+      const btnW = 140, btnH = 46;
+      const btnX = x + w - 30 - btnW;
+      const btnY = itemY + 27;
+      
+      const isUnlocked = driver.id === 'driver_none' || state.unlockedDrivers.includes(driver.id);
+      const isSelected = (driver.id === 'driver_none' && state.selectedDriver === null) || state.selectedDriver === driver.id;
+      
+      if (isSelected) {
+        ctx.fillStyle = '#888';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Selected', btnX + btnW/2, btnY + 30);
+      } else if (isUnlocked) {
+        ctx.fillStyle = '#2196F3';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Select', btnX + btnW/2, btnY + 30);
+      } else {
+        ctx.fillStyle = state.totalCoins >= driver.price ? '#4CAF50' : '#d32f2f';
+        drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 8);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Buy', btnX + btnW/2, btnY + 30);
+      }
     }
   }
-
-  // Draw Gun Upgrade
-  const i = cars.length;
-  const gunItemY = startY + i * itemHeight;
-  if (i % 2 === 0) {
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(x + 16, gunItemY, w - 32, itemHeight);
-  }
-
-  ctx.fillStyle = '#27ae60';
-  ctx.fillRect(x + 40, gunItemY + 20, 40, 60);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('AMMO', x + 60, gunItemY + 50);
-
-  const lvl = state.gunLevel || 1;
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 26px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('Gun Upgrade (Lv ' + lvl + ')', x + 120, gunItemY + 45);
-
-  const upgradeCost = 10000 * Math.pow(2, lvl - 1);
-  ctx.fillStyle = '#FFD700';
-  ctx.font = '20px sans-serif';
-  ctx.fillText(upgradeCost + ' Coins (+10 Max)', x + 120, gunItemY + 75);
-
-  const uBtnW = 140, uBtnH = 46;
-  const uBtnX = x + w - 30 - uBtnW;
-  const uBtnY = gunItemY + 27;
-
-  ctx.fillStyle = state.totalCoins >= upgradeCost ? '#9C27B0' : '#d32f2f'; // Purple for upgrade
-  drawRoundedRect(ctx, uBtnX, uBtnY, uBtnW, uBtnH, 8);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 20px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Upgrade', uBtnX + uBtnW / 2, uBtnY + 30);
+  ctx.restore();
 
   const closeX = x + w - 40;
   const closeY = y + 16;

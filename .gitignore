@@ -1,3 +1,11 @@
 #scores.db
 save_score.log
 scores.db
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Mac OS
+.DS_Store

@@ -123,8 +123,8 @@ svg {
 }
 
 .gun-toggle {
-  width: 58px;
-  height: 58px;
+  width: 67px;
+  height: 67px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,7 +134,7 @@ svg {
   box-shadow: 0 8px 20px rgba(0,0,0,0.34);
   backdrop-filter: blur(8px);
   color: #fff;
-  font-size: 24px;
+  font-size: 28px;
   cursor: pointer;
   outline: none;
   -webkit-tap-highlight-color: transparent;

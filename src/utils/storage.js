@@ -57,7 +57,7 @@ export function savePlayerStats(stats) {
   try {
     // limit to 5 runs
     if (stats.lastRuns && stats.lastRuns.length > MAX_LAST_RUNS) {
-      stats.lastRuns = stats.lastRuns.slice(0, MAX_LAST_RUNS);
+      stats.lastRuns.splice(MAX_LAST_RUNS);
     }
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
   } catch (e) {
@@ -68,15 +68,17 @@ export function savePlayerStats(stats) {
 export function loadInventory() {
   try {
     const raw = localStorage.getItem(INVENTORY_KEY);
-    if (!raw) return { unlockedCars: ['mycar'], selectedCar: 'mycar', gunLevel: 1 };
+    if (!raw) return { unlockedCars: ['mycar'], selectedCar: 'mycar', unlockedDrivers: [], selectedDriver: null, gunLevel: 1 };
     const parsed = JSON.parse(raw);
     return {
       unlockedCars: Array.isArray(parsed.unlockedCars) ? parsed.unlockedCars : ['mycar'],
       selectedCar: parsed.selectedCar || 'mycar',
+      unlockedDrivers: Array.isArray(parsed.unlockedDrivers) ? parsed.unlockedDrivers : [],
+      selectedDriver: parsed.selectedDriver || null,
       gunLevel: parseInt(parsed.gunLevel) || 1
     };
   } catch (e) {
-    return { unlockedCars: ['mycar'], selectedCar: 'mycar', gunLevel: 1 };
+    return { unlockedCars: ['mycar'], selectedCar: 'mycar', unlockedDrivers: [], selectedDriver: null, gunLevel: 1 };
   }
 }
 

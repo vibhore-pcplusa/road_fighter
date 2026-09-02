@@ -7,7 +7,16 @@ const spriteFiles = {
   red: "red_car.png",
   blue: "blue_car.png",
   green: "green_car.png",
-  gadda: "gadda.png"
+  gadda: "gadda.png",
+  driver_alex: "drivers/Alex.png",
+  driver_gaurav: "drivers/Gaurav.png",
+  driver_helina: "drivers/Helina.png",
+  driver_jasmine: "drivers/Jasmine.png",
+  driver_mathew: "drivers/Mathew.png",
+  driver_nina: "drivers/Nina.png",
+  driver_paul: "drivers/Paul.png",
+  driver_rahul: "drivers/Rahul.png",
+  driver_vibhore: "drivers/Vibhore.png"
 };
 
 export function loadTreeImages() {
