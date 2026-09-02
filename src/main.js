@@ -1076,6 +1076,8 @@ function setupUI() {
       ui.activePointers[e.pointerId] = ctrlKey;
       ui.activeControls[ctrlKey] = true;
       if (ctrlKey === 'left' || ctrlKey === 'right') {
+        if (ctrlKey === 'left') moveLeft(state, playSound);
+        if (ctrlKey === 'right') moveRight(state, playSound);
         ui.holdFrames = 0;
       } else if (ctrlKey === 'up') {
         state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 1);
@@ -1121,6 +1123,11 @@ function setupUI() {
           ui.activeControls[oldKey] = false;
         }
         if (ctrlKey) {
+          if (oldKey !== ctrlKey) {
+            if (ctrlKey === 'left') moveLeft(state, playSound);
+            if (ctrlKey === 'right') moveRight(state, playSound);
+            if (ctrlKey === 'left' || ctrlKey === 'right') ui.holdFrames = 0;
+          }
           ui.activePointers[e.pointerId] = ctrlKey;
           ui.activeControls[ctrlKey] = true;
         } else {
