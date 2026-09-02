@@ -179,9 +179,9 @@ export function renderCanvasControls(controlImgs) {
   ctx.textAlign = 'center';
   ctx.fillText(ui.pauseLabel, x + btnW / 2, y + 28);
 
-  const size = 76;
+  const size = 85;
   const cx = W - 210;
-  const cy = H - 125;
+  const cy = H - 145;
   const positions = {
     up: { x: cx, y: cy - size },
     down: { x: cx, y: cy + size },

@@ -122,25 +122,32 @@ function update() {
   if (!state.running || state.paused) return;
 
   state.frames++;
-  const isBraking = ui.holding === 'brake';
+  const isBraking = ui.activeControls.down;
 
-  if (ui.holding) {
+  const anyActive = ui.activeControls.up || ui.activeControls.down || ui.activeControls.left || ui.activeControls.right;
+  if (anyActive) {
     ui.holdFrames++;
-    if (ui.holding === 'accelerate') {
-      state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.02);
-    } else if (ui.holding === 'brake') {
-      state.speedTarget = Math.max(0, state.speedTarget - 0.12);
-    } else if (ui.holding === 'left' && ui.holdFrames % 12 === 0) {
-      moveLeft(state, playSound);
-    } else if (ui.holding === 'right' && ui.holdFrames % 12 === 0) {
-      moveRight(state, playSound);
-    }
+  } else {
+    ui.holdFrames = 0;
+  }
+
+  if (ui.activeControls.up) {
+    state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 0.02);
+  } else if (ui.activeControls.down) {
+    state.speedTarget = Math.max(0, state.speedTarget - 0.12);
   } else {
     if (state.speedTarget < state.minSpeed) {
       state.speedTarget = Math.min(state.minSpeed, state.speedTarget + 0.015);
     } else {
       state.speedTarget = Math.max(state.minSpeed, state.speedTarget - 0.015);
     }
+  }
+
+  if (ui.activeControls.left && ui.holdFrames % 12 === 0) {
+    moveLeft(state, playSound);
+  }
+  if (ui.activeControls.right && ui.holdFrames % 12 === 0) {
+    moveRight(state, playSound);
   }
 
   state.speed += (state.speedTarget - state.speed) * 0.12;
@@ -432,6 +439,25 @@ function fetchLeaders() {
   }).catch(e => {
     state.leaders = [];
   });
+}
+
+function getControlKey(x, y) {
+  if (ui.panels.save || ui.panels.leaders || ui.panels.controls || ui.panels.stats || ui.panels.shop || ui.panels.daily) {
+    return null;
+  }
+  if (!state.running || state.paused) {
+    return null;
+  }
+  if (ui._controlPos) {
+    for (const k of ['up', 'down', 'left', 'right']) {
+      const p = ui._controlPos[k];
+      const size = 85;
+      if (Math.hypot(x - p.x, y - p.y) <= size) {
+        return k;
+      }
+    }
+  }
+  return null;
 }
 
 function handleCanvasPointer(x, y) {
@@ -727,32 +753,7 @@ function handleCanvasPointer(x, y) {
     }
   }
 
-  if (ui._controlPos) {
-    for (const k of ['up', 'down', 'left', 'right']) {
-      const p = ui._controlPos[k];
-      const size = 76;
-      if (Math.hypot(x - p.x, y - p.y) <= size) {
-        if (k === 'left') {
-          moveLeft(state, playSound);
-          ui.holding = 'left';
-          ui.holdFrames = 0;
-        } else if (k === 'right') {
-          moveRight(state, playSound);
-          ui.holding = 'right';
-          ui.holdFrames = 0;
-        } else if (k === 'up') {
-          state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 1);
-          ui.holding = 'accelerate';
-          ui.holdFrames = 0;
-        } else if (k === 'down') {
-          state.speedTarget = Math.max(0, state.speedTarget - 1);
-          ui.holding = 'brake';
-          ui.holdFrames = 0;
-        }
-        return;
-      }
-    }
-  }
+  // Control handling moved to getControlKey and pointerdown
 
   const btnW = 120, btnH = 44;
   const bx = 18, by = 48;
@@ -944,10 +945,13 @@ function setupUI() {
   // Gun button
   const gunToggle = document.getElementById('gunToggle');
   if (gunToggle) {
-    gunToggle.addEventListener('click', function (e) {
+    const fireAction = function (e) {
       e.stopPropagation();
+      if (e.cancelable && e.type === 'touchstart') e.preventDefault(); // prevent synthesized click and canvas interruption
       shootBullet(state, ui);
-    });
+    };
+    gunToggle.addEventListener('touchstart', fireAction, { passive: false });
+    gunToggle.addEventListener('mousedown', fireAction);
   }
 
   // Settings menu toggle
@@ -1067,6 +1071,20 @@ function setupUI() {
       lastTouchY = e.clientY;
     }
 
+    const ctrlKey = getControlKey(x, y);
+    if (ctrlKey) {
+      ui.activePointers[e.pointerId] = ctrlKey;
+      ui.activeControls[ctrlKey] = true;
+      if (ctrlKey === 'left' || ctrlKey === 'right') {
+        ui.holdFrames = 0;
+      } else if (ctrlKey === 'up') {
+        state.speedTarget = Math.min(state.maxSpeed, state.speedTarget + 1);
+      } else if (ctrlKey === 'down') {
+        state.speedTarget = Math.max(0, state.speedTarget - 1);
+      }
+      return;
+    }
+
     handleCanvasPointer(x, y);
   });
 
@@ -1091,15 +1109,41 @@ function setupUI() {
       }
 
       lastTouchY = e.clientY;
+    } else if (e.pointerType === 'touch' || e.pointerType === 'mouse') {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const ctrlKey = getControlKey(x, y);
+      
+      if (ui.activePointers[e.pointerId] !== undefined || ctrlKey) {
+        const oldKey = ui.activePointers[e.pointerId];
+        if (oldKey && oldKey !== ctrlKey) {
+          ui.activeControls[oldKey] = false;
+        }
+        if (ctrlKey) {
+          ui.activePointers[e.pointerId] = ctrlKey;
+          ui.activeControls[ctrlKey] = true;
+        } else {
+          delete ui.activePointers[e.pointerId];
+        }
+      }
     }
   });
 
-  canvas.addEventListener('pointerup', function (e) {
+  function handlePointerUp(e) {
     isDraggingStats = false;
-    if (ui.inputActive) return;
-    ui.holding = null;
-    ui.holdFrames = 0;
-  });
+    const key = ui.activePointers[e.pointerId];
+    if (key) {
+      ui.activeControls[key] = false;
+      delete ui.activePointers[e.pointerId];
+    }
+    if (Object.keys(ui.activePointers).length === 0) {
+      ui.holdFrames = 0;
+    }
+  }
+
+  canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('pointercancel', handlePointerUp);
 }
 
 window.startGame = startGame;

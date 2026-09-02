@@ -57,7 +57,7 @@ export function savePlayerStats(stats) {
   try {
     // limit to 5 runs
     if (stats.lastRuns && stats.lastRuns.length > MAX_LAST_RUNS) {
-      stats.lastRuns = stats.lastRuns.slice(0, MAX_LAST_RUNS);
+      stats.lastRuns.splice(MAX_LAST_RUNS);
     }
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
   } catch (e) {
