@@ -4,6 +4,23 @@ import { state, ui } from '../core/state.js';
 import { getImages } from '../assets/imageLoader.js';
 import { loadDailyData, getMissionTarget, getMissionReward, getLoginReward } from '../utils/dailyTracker.js';
 
+function getAppVersionText() {
+  if (window.appVersion) {
+    return 'App: ' + window.appVersion;
+  }
+
+  if (window.AndroidApp && typeof window.AndroidApp.getAppVersion === 'function') {
+    try {
+      const version = window.AndroidApp.getAppVersion();
+      if (version) return 'App: ' + version;
+    } catch (error) {
+      // Ignore bridge errors and fall back to default value.
+    }
+  }
+
+  return 'App: unknown';
+}
+
 export function drawLeadersPanel() {
   const w = 560, h = 550;
   const x = (W - w) / 2, y = (H - h) / 2;
@@ -170,13 +187,14 @@ export function drawStatsPanel() {
   ctx.fillText('Total Coins: ' + state.totalCoins, x + 30, y + 110);
 
   ctx.fillStyle = '#fff';
-  ctx.font = '26px sans-serif';
+  ctx.font = '24px sans-serif';
+  ctx.fillText(getAppVersionText(), x + 30, y + 150);
 
   const list = state.lastRuns || [];
   
   // Set up clipping region for the scrolling list
-  const listAreaY = y + 130;
-  const listAreaH = h - 150;
+  const listAreaY = y + 175;
+  const listAreaH = h - 195;
   ctx.save();
   ctx.beginPath();
   ctx.rect(x + 16, listAreaY, w - 32, listAreaH);
